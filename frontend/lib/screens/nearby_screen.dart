@@ -4,6 +4,8 @@ import '../models/merchant.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
 
+enum _SortMode { distance, price }
+
 class NearbyScreen extends StatefulWidget {
   final String wineName;
   final double budgetMin;
@@ -24,6 +26,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
   List<Merchant>? _merchants;
   bool _loading = true;
   String? _error;
+  _SortMode _sortMode = _SortMode.distance;
 
   @override
   void initState() {
@@ -55,6 +58,17 @@ class _NearbyScreenState extends State<NearbyScreen> {
         _loading = false;
       });
     }
+  }
+
+  List<Merchant> get _sorted {
+    if (_merchants == null) return [];
+    final list = List<Merchant>.from(_merchants!);
+    if (_sortMode == _SortMode.price) {
+      list.sort((a, b) => a.priceUsd.compareTo(b.priceUsd));
+    } else {
+      list.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+    }
+    return list;
   }
 
   @override
@@ -129,27 +143,60 @@ class _NearbyScreenState extends State<NearbyScreen> {
       );
     }
 
+    final sorted = _sorted;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // --- Sort toggle ---
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text(
-            '${_merchants!.length} merchants found — sorted by distance first',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.grey),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Row(
+            children: [
+              Text(
+                '${sorted.length} merchants found  ·  Sort by:',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey),
+              ),
+              const SizedBox(width: 8),
+              SegmentedButton<_SortMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: _SortMode.distance,
+                    label: Text('Distance'),
+                    icon: Icon(Icons.near_me, size: 14),
+                  ),
+                  ButtonSegment(
+                    value: _SortMode.price,
+                    label: Text('Price'),
+                    icon: Icon(Icons.attach_money, size: 14),
+                  ),
+                ],
+                selected: {_sortMode},
+                onSelectionChanged: (s) =>
+                    setState(() => _sortMode = s.first),
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
           ),
         ),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(12),
-            itemCount: _merchants!.length,
+            itemCount: sorted.length,
             itemBuilder: (context, index) {
-              final m = _merchants![index];
-              final isClosest = index == 0;
-              return _MerchantCard(merchant: m, isClosest: isClosest);
+              final m = sorted[index];
+              final isBest = index == 0;
+              return _MerchantCard(
+                merchant: m,
+                isBest: isBest,
+                sortMode: _sortMode,
+              );
             },
           ),
         ),
@@ -160,19 +207,26 @@ class _NearbyScreenState extends State<NearbyScreen> {
 
 class _MerchantCard extends StatelessWidget {
   final Merchant merchant;
-  final bool isClosest;
+  final bool isBest;
+  final _SortMode sortMode;
 
-  const _MerchantCard({required this.merchant, required this.isClosest});
+  const _MerchantCard({
+    required this.merchant,
+    required this.isBest,
+    required this.sortMode,
+  });
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
+    final badgeLabel =
+        sortMode == _SortMode.distance ? 'Closest' : 'Best Price';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isClosest
+        side: isBest
             ? BorderSide(color: color, width: 2)
             : BorderSide.none,
       ),
@@ -186,7 +240,7 @@ class _MerchantCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: isClosest
+                color: isBest
                     ? color.withValues(alpha: 0.12)
                     : Colors.grey.shade100,
                 shape: BoxShape.circle,
@@ -202,12 +256,12 @@ class _MerchantCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: isClosest ? color : Colors.grey.shade700,
+                        color: isBest ? color : Colors.grey.shade700,
                       ),
                     ),
                     Icon(Icons.place,
                         size: 14,
-                        color: isClosest ? color : Colors.grey.shade500),
+                        color: isBest ? color : Colors.grey.shade500),
                   ],
                 ),
               ),
@@ -224,12 +278,10 @@ class _MerchantCard extends StatelessWidget {
                         child: Text(
                           merchant.name,
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
+                              fontWeight: FontWeight.bold, fontSize: 15),
                         ),
                       ),
-                      if (isClosest)
+                      if (isBest)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
@@ -237,9 +289,9 @@ class _MerchantCard extends StatelessWidget {
                             color: Colors.green.shade600,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
-                            'Available Now',
-                            style: TextStyle(
+                          child: Text(
+                            badgeLabel,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -254,14 +306,14 @@ class _MerchantCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: color,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     merchant.address,
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade600),
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 8),
                   Text(

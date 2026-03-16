@@ -8,7 +8,7 @@ class ApiService {
   // Android emulator routes 10.0.2.2 → host machine's localhost.
   // For a physical device or iOS simulator, replace with your machine's LAN IP
   // e.g. 'http://192.168.1.X:8000'
-  static const String _baseUrl = 'http://localhost:8000';
+  static const String _baseUrl = 'http://localhost:8002';
 
   Future<String> fetchHello() async {
     final response = await http.get(Uri.parse('$_baseUrl/hello'));
@@ -19,7 +19,11 @@ class ApiService {
     throw Exception('Server returned status ${response.statusCode}');
   }
 
-  Future<List<WineRecommendation>> recommend({
+  Future<({
+    List<WineRecommendation> recommendations,
+    ConflictAlert? alert,
+    GastroClash? gastroClash,
+  })> recommend({
     required int crispnessAcidity,
     required int weightBody,
     required int textureTannin,
@@ -39,9 +43,40 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return (data['recommendations'] as List)
+      final recommendations = (data['recommendations'] as List)
           .map((r) => WineRecommendation.fromJson(r as Map<String, dynamic>))
           .toList();
+      final alertJson = data['conflict_alert'] as Map<String, dynamic>?;
+      final gastroJson = data['gastro_clash'] as Map<String, dynamic>?;
+      return (
+        recommendations: recommendations,
+        alert: alertJson != null ? ConflictAlert.fromJson(alertJson) : null,
+        gastroClash:
+            gastroJson != null ? GastroClash.fromJson(gastroJson) : null,
+      );
+    }
+    throw Exception('Server returned status ${response.statusCode}');
+  }
+
+  Future<GastroClash?> checkPairing({
+    required String foodType,
+    required int crispnessAcidity,
+    required int weightBody,
+    required int textureTannin,
+    required int flavorIntensity,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/check-pairing').replace(queryParameters: {
+      'food_type': foodType,
+      'crispness_acidity': '$crispnessAcidity',
+      'weight_body': '$weightBody',
+      'texture_tannin': '$textureTannin',
+      'flavor_intensity': '$flavorIntensity',
+    });
+    final response = await http.get(uri);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final clashJson = data['gastro_clash'] as Map<String, dynamic>?;
+      return clashJson != null ? GastroClash.fromJson(clashJson) : null;
     }
     throw Exception('Server returned status ${response.statusCode}');
   }

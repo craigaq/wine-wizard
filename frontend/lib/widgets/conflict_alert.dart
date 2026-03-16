@@ -1,68 +1,139 @@
 import 'package:flutter/material.dart';
+import '../models/wine_recommendation.dart';
 
-Future<void> showConflictAlert(
-  BuildContext context, {
-  required VoidCallback onIncreaseWeight,
-  required VoidCallback onReduceTexture,
-}) {
-  return showDialog(
+// ---------------------------------------------------------------------------
+// Palate conflict alert (attribute-level mismatch)
+// ---------------------------------------------------------------------------
+
+Future<void> showWizardConflictAlert(
+  BuildContext context,
+  ConflictAlert alert,
+  void Function(int) onAdjust,
+) {
+  return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _ConflictAlertDialog(
-      onIncreaseWeight: onIncreaseWeight,
-      onReduceTexture: onReduceTexture,
-    ),
+    builder: (context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          alert.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🧙‍♂️', style: TextStyle(fontSize: 56)),
+            const SizedBox(height: 15),
+            Text(
+              alert.message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("No, I'm Stubborn"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[800]),
+            onPressed: () {
+              onAdjust(alert.suggestedValue);
+              Navigator.of(context).pop();
+            },
+            child: const Text(
+              'Trust the Wizard',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      );
+    },
   );
 }
 
-class _ConflictAlertDialog extends StatelessWidget {
-  final VoidCallback onIncreaseWeight;
-  final VoidCallback onReduceTexture;
+// ---------------------------------------------------------------------------
+// Gastro-clash alert (food + palate mismatch) — bottom sheet
+// ---------------------------------------------------------------------------
 
-  const _ConflictAlertDialog({
-    required this.onIncreaseWeight,
-    required this.onReduceTexture,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Row(
-        children: [
-          Text('🧙‍♂️', style: TextStyle(fontSize: 24)),
-          SizedBox(width: 8),
-          Flexible(child: Text('Your Wizard Senses a Disturbance')),
-        ],
-      ),
-      content: const Text(
-        'Ah — a Light Weight (Body) with High Texture (Tannin). Bold choice. '
-        'Genuinely rare in the wild, like a featherweight boxer with an iron grip.\n\n'
-        'Most light-bodied wines keep their tannins low and their manners impeccable. '
-        'Your palate is... unconventional. I respect it.\n\n'
-        'That said, if you\'d like the cellar to have more options for you, '
-        'I can tweak one of these:',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            onIncreaseWeight();
-          },
-          child: const Text('Bulk up the Weight (Body)'),
+Future<void> showGastroClashAlert(
+  BuildContext context,
+  GastroClash clash,
+  void Function(Map<String, int>) onApply,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isDismissible: false,
+    enableDrag: false,
+    builder: (context) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.indigo[900],
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
         ),
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            onReduceTexture();
-          },
-          child: const Text('Soften the Texture (Tannin)'),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              clash.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.amber,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              clash.message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white54),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(
+                      "I'll risk it!",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber[700],
+                    ),
+                    onPressed: () {
+                      onApply(clash.newValues);
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text(
+                      'Trust the Wizard',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text("I know what I like, Wizard"),
-        ),
-      ],
-    );
-  }
+      );
+    },
+  );
 }

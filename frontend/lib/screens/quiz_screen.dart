@@ -4,10 +4,18 @@ import '../models/wine_recommendation.dart';
 import '../screens/nearby_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/conflict_alert.dart';
+import '../widgets/magic_palette_step.dart';
 import '../widgets/palate_dial.dart';
 
 class QuizScreen extends StatefulWidget {
-  const QuizScreen({super.key});
+  final ThemeMode themeMode;
+  final VoidCallback onToggleTheme;
+
+  const QuizScreen({
+    super.key,
+    required this.themeMode,
+    required this.onToggleTheme,
+  });
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -22,21 +30,79 @@ class _QuizScreenState extends State<QuizScreen> {
   int _weight = 3;
   int _texture = 3;
   int _flavor = 3;
-  String _foodPairing = 'None';
+  String _foodPairing = 'none'; // stores the backend ID
   String _budgetLabel = '\$16 – \$25';
 
   // --- Results state ---
   List<WineRecommendation>? _results;
   bool _loading = false;
   String? _error;
+  ConflictAlert? _conflictAlert;
 
   static const int _totalPages = 10;
-  static const List<String> _foodOptions = [
-    'None',
-    'Chicken/Fish',
-    'Red Meat',
-    'Cheese',
-    'Dessert',
+  /// Each entry: label = UI text, id = backend key, emoji = grid icon,
+  /// comment = Wizard's in-step commentary shown when the item is selected.
+  static const List<Map<String, String>> _foodOptions = [
+    {
+      'label':   'Steak, Lamb, or Burgers',
+      'id':      'red_meat',
+      'emoji':   '🥩',
+      'comment': "Steak nights are the best! We'll hunt for a wine with enough 'grip' (Tannin) to handle all that richness.",
+    },
+    {
+      'label':   'Chicken, Turkey, or Pork',
+      'id':      'poultry',
+      'emoji':   '🍗',
+      'comment': "Chicken or pork? A versatile choice! Let's find a wine that's supportive but still brings its own personality to the party.",
+    },
+    {
+      'label':   'White Fish or Shellfish',
+      'id':      'white_fish',
+      'emoji':   '🐟',
+      'comment': "Delicate flavors! We'll keep things light and 'crisp' (Acidity) so the wine doesn't drown out the fish.",
+    },
+    {
+      'label':   'Salmon or Tuna',
+      'id':      'rich_fish',
+      'emoji':   '🍣',
+      'comment': "Salmon has some weight to it! We need a wine with enough 'zing' (Acidity) to cut through the richness.",
+    },
+    {
+      'label':   'Spicy Curry or Tacos',
+      'id':      'spicy_food',
+      'emoji':   '🌶️',
+      'comment': "Ooh, a spicy one! We'll look for something 'fruity' (Aromatics) to act like a fire extinguisher for your tongue.",
+    },
+    {
+      'label':   'Tomato Pasta or Pizza',
+      'id':      'tomato_sauce',
+      'emoji':   '🍕',
+      'comment': "Zesty tomato sauce! We need a wine with enough 'punch' (Acidity) to keep up with that tangy energy.",
+    },
+    {
+      'label':   'Creamy or Cheesy Pasta',
+      'id':      'creamy_sauce',
+      'emoji':   '🧀',
+      'comment': "Rich and buttery? We'll find a 'heavyweight' (Full-bodied) wine that feels just as luxurious as the sauce.",
+    },
+    {
+      'label':   'Salads or Green Veggies',
+      'id':      'greens',
+      'emoji':   '🥗',
+      'comment': "Fresh and light! Let's pick a 'crisp' (Acidity) wine that tastes like a summer garden in a glass.",
+    },
+    {
+      'label':   'Cheese & Charcuterie',
+      'id':      'charcuterie',
+      'emoji':   '🍖',
+      'comment': "The ultimate snack pack! We'll find a crowd-pleaser that can handle everything from creamy brie to salty salami.",
+    },
+    {
+      'label':   'Just sipping (No food)',
+      'id':      'none',
+      'emoji':   '🍷',
+      'comment': "Just a glass and some good vibes? Perfection. Let's find a wine that's a star all on its own.",
+    },
   ];
   static const List<Map<String, Object>> _budgetOptions = [
     {'label': '\$5 – \$15',   'min': 5.0,   'max': 15.0},
@@ -46,8 +112,28 @@ class _QuizScreenState extends State<QuizScreen> {
     {'label': '\$101+',       'min': 101.0, 'max': 9999.0},
   ];
 
+  static const List<String> _attrOrder = [
+    'Crispness (Acidity)',
+    'Weight (Body)',
+    'Texture (Tannin)',
+    'Flavor Intensity (Aromatics)',
+  ];
+
   Map<String, Object> get _selectedBudget =>
       _budgetOptions.firstWhere((b) => b['label'] == _budgetLabel);
+
+  String get _foodLabel =>
+      _foodOptions.firstWhere((f) => f['id'] == _foodPairing)['label'] ?? _foodPairing;
+
+  String? get _foodComment =>
+      _foodOptions.firstWhere((f) => f['id'] == _foodPairing, orElse: () => {})['comment'];
+
+  Map<String, int> get _userPrefs => {
+        'Crispness (Acidity)':        _crispness,
+        'Weight (Body)':              _weight,
+        'Texture (Tannin)':           _texture,
+        'Flavor Intensity (Aromatics)': _flavor,
+      };
 
   bool get _hasConflict => _weight <= 2 && _texture >= 4;
 
@@ -56,12 +142,9 @@ class _QuizScreenState extends State<QuizScreen> {
   // ---------------------------------------------------------------------------
 
   Future<void> _goNext() async {
-    if (_currentPage == 5 && _hasConflict) {
-      await showConflictAlert(
-        context,
-        onIncreaseWeight: () => setState(() => _weight = 3),
-        onReduceTexture: () => setState(() => _texture = 2),
-      );
+    // Food page (5) → check for gastro clash before advancing
+    if (_currentPage == 5 && _foodPairing != 'none') {
+      await _checkAndHandlePairingClash();
     }
     if (_currentPage == 8) {
       _fetchResults();
@@ -74,6 +157,25 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
+  /// Calls the lightweight GET /check-pairing endpoint and shows the
+  /// Gastro-Clash bottom sheet if a conflict is detected.
+  Future<void> _checkAndHandlePairingClash() async {
+    try {
+      final clash = await ApiService().checkPairing(
+        foodType: _foodPairing,
+        crispnessAcidity: _crispness,
+        weightBody: _weight,
+        textureTannin: _texture,
+        flavorIntensity: _flavor,
+      );
+      if (clash != null && mounted) {
+        await showGastroClashAlert(context, clash, _applyGastroAdjustment);
+      }
+    } catch (_) {
+      // Non-critical — proceed without blocking navigation
+    }
+  }
+
   void _goBack() {
     if (_currentPage > 0) {
       _controller.previousPage(
@@ -83,14 +185,35 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
+  void _startOver() {
+    setState(() {
+      _crispness = 3;
+      _weight = 3;
+      _texture = 3;
+      _flavor = 3;
+      _foodPairing = 'none';
+      _budgetLabel = '\$16 – \$25';
+      _results = null;
+      _loading = false;
+      _error = null;
+      _conflictAlert = null;
+    });
+    _controller.animateToPage(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+
   Future<void> _fetchResults() async {
     setState(() {
       _loading = true;
       _error = null;
       _results = null;
+      _conflictAlert = null;
     });
     try {
-      final results = await ApiService().recommend(
+      final result = await ApiService().recommend(
         crispnessAcidity: _crispness,
         weightBody: _weight,
         textureTannin: _texture,
@@ -98,9 +221,14 @@ class _QuizScreenState extends State<QuizScreen> {
         foodPairing: _foodPairing,
       );
       setState(() {
-        _results = results;
+        _results = result.recommendations;
+        _conflictAlert = result.alert;
         _loading = false;
       });
+      // Palate conflict alert (shown after results load)
+      if (result.alert != null && mounted) {
+        await showWizardConflictAlert(context, result.alert!, _applyConflictAdjustment);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -109,16 +237,59 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
+  /// Updates palate dial state from a Gastro-Clash override.
+  /// Does NOT fetch results — the search runs later when the quiz completes.
+  void _applyGastroAdjustment(Map<String, int> newValues) {
+    setState(() {
+      for (final entry in newValues.entries) {
+        switch (entry.key) {
+          case 'texture_tannin':
+            _texture = entry.value;
+          case 'weight_body':
+            _weight = entry.value;
+          case 'crispness_acidity':
+            _crispness = entry.value;
+          case 'flavor_intensity':
+            _flavor = entry.value;
+        }
+      }
+    });
+  }
+
+  void _applyConflictAdjustment(int value) {
+    setState(() {
+      switch (_conflictAlert?.field) {
+        case 'texture_tannin':
+          _texture = value;
+        case 'weight_body':
+          _weight = value;
+        case 'crispness_acidity':
+          _crispness = value;
+        case 'flavor_intensity':
+          _flavor = value;
+      }
+    });
+    _fetchResults();
+  }
+
   // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
+    final isDark = widget.themeMode == ThemeMode.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wine Wizard'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: isDark ? 'Light mode' : 'Dark mode',
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: widget.onToggleTheme,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
@@ -135,37 +306,25 @@ class _QuizScreenState extends State<QuizScreen> {
           _buildWelcome(),
           _buildAttributeStep(
             title: 'Crispness (Acidity)',
-            description:
-                'How much do you enjoy a fresh, zesty bite in your wine?',
-            lowLabel: 'Smooth & Mellow',
-            highLabel: 'Sharp & Zesty',
+            description: 'How much do you enjoy a fresh, zesty bite in your wine?',
             value: _crispness,
             onChanged: (v) => setState(() => _crispness = v),
           ),
           _buildAttributeStep(
             title: 'Weight (Body)',
-            description:
-                'Do you prefer a light, delicate sip or a rich, full-bodied experience?',
-            lowLabel: 'Light & Delicate',
-            highLabel: 'Rich & Full',
+            description: 'Do you prefer a light, delicate sip or a rich, full-bodied experience?',
             value: _weight,
             onChanged: (v) => setState(() => _weight = v),
           ),
           _buildAttributeStep(
             title: 'Texture (Tannin)',
-            description:
-                'How do you feel about that dry, grippy sensation common in red wines?',
-            lowLabel: 'Silky & Smooth',
-            highLabel: 'Grippy & Bold',
+            description: 'How do you feel about that dry, grippy sensation common in red wines?',
             value: _texture,
             onChanged: (v) => setState(() => _texture = v),
           ),
           _buildAttributeStep(
             title: 'Flavor Intensity (Aromatics)',
-            description:
-                'Do you prefer subtle, understated flavors or bold, expressive ones?',
-            lowLabel: 'Subtle & Quiet',
-            highLabel: 'Bold & Expressive',
+            description: 'Do you prefer subtle, understated flavors or bold, expressive ones?',
             value: _flavor,
             onChanged: (v) => setState(() => _flavor = v),
           ),
@@ -202,7 +361,13 @@ class _QuizScreenState extends State<QuizScreen> {
               )
             else
               const SizedBox.shrink(),
-            if (!isLast)
+            if (isLast)
+              TextButton.icon(
+                onPressed: _startOver,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Start Over'),
+              )
+            else
               FilledButton.icon(
                 onPressed: _goNext,
                 label: Text(_currentPage == 8 ? 'Find My Wine!' : 'Next'),
@@ -251,109 +416,21 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Steps 1–4 — Attribute sliders
+  // Steps 1–4 — Attribute selectors
   // ---------------------------------------------------------------------------
 
   Widget _buildAttributeStep({
     required String title,
     required String description,
-    required String lowLabel,
-    required String highLabel,
     required int value,
     required ValueChanged<int> onChanged,
   }) {
     return _stepShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(description, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(5, (i) {
-              final v = i + 1;
-              final selected = value == v;
-              return GestureDetector(
-                onTap: () => onChanged(v),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    shape: BoxShape.circle,
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$v',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: selected
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                lowLabel,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey),
-              ),
-              Text(
-                highLabel,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey),
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          Center(
-            child: SizedBox(
-              width: 200,
-              height: 200,
-              child: PalateDial(
-                crispness: _crispness,
-                weight: _weight,
-                flavorIntensity: _flavor,
-                texture: _texture,
-              ),
-            ),
-          ),
-        ],
+      child: MagicPaletteStep(
+        title: title,
+        description: description,
+        value: value,
+        onChanged: onChanged,
       ),
     );
   }
@@ -363,6 +440,10 @@ class _QuizScreenState extends State<QuizScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildFoodPairingStep() {
+    // Split the last option ("Just sipping") out so it can span full width.
+    final gridOptions = _foodOptions.sublist(0, _foodOptions.length - 1);
+    final soloOption  = _foodOptions.last;
+
     return _stepShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,26 +456,53 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'What are you planning to eat? We\'ll fine-tune your recommendations.',
+            "What's on the table tonight? The Wizard will fine-tune your match.",
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 32),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _foodOptions.map((option) {
-              final selected = _foodPairing == option;
-              return ChoiceChip(
-                label: Text(option),
-                selected: selected,
-                onSelected: (_) => setState(() => _foodPairing = option),
-                selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                labelStyle: TextStyle(
-                  fontWeight:
-                      selected ? FontWeight.bold : FontWeight.normal,
+          const SizedBox(height: 24),
+
+          // 2-column icon grid for food items
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: gridOptions.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.35,
+            ),
+            itemBuilder: (context, i) =>
+                _FoodCard(
+                  option: gridOptions[i],
+                  selected: _foodPairing == gridOptions[i]['id'],
+                  onTap: () => setState(() => _foodPairing = gridOptions[i]['id']!),
                 ),
-              );
-            }).toList(),
+          ),
+
+          const SizedBox(height: 12),
+
+          // "Just sipping" spans the full width at the bottom
+          _FoodCard(
+            option: soloOption,
+            selected: _foodPairing == soloOption['id'],
+            onTap: () => setState(() => _foodPairing = soloOption['id']!),
+            fullWidth: true,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Wizard commentary — fades in/out as the selection changes
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: _foodComment != null
+                ? _WizardComment(
+                    key: ValueKey(_foodPairing),
+                    text: _foodComment!,
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -431,8 +539,8 @@ class _QuizScreenState extends State<QuizScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
                     color: selected
                         ? Theme.of(context).colorScheme.primaryContainer
@@ -451,17 +559,14 @@ class _QuizScreenState extends State<QuizScreen> {
                       Text(
                         label,
                         style: TextStyle(
-                          fontWeight: selected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight:
+                              selected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 16,
                         ),
                       ),
                       if (selected)
-                        Icon(
-                          Icons.check_circle,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                        Icon(Icons.check_circle,
+                            color: Theme.of(context).colorScheme.primary),
                     ],
                   ),
                 ),
@@ -517,7 +622,8 @@ class _QuizScreenState extends State<QuizScreen> {
                   Flexible(
                     child: Text(
                       'Hmm. Light Weight with High Texture — the Wizard has thoughts. Tap Next.',
-                      style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+                      style:
+                          TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
                     ),
                   ),
                 ],
@@ -530,7 +636,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 7 — Summary
+  // Step 8 — Summary
   // ---------------------------------------------------------------------------
 
   Widget _buildSummaryStep() {
@@ -581,7 +687,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     children: [
                       const Text('Food Pairing',
                           style: TextStyle(fontWeight: FontWeight.w500)),
-                      Text(_foodPairing,
+                      Text(_foodLabel,
                           style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w600)),
@@ -609,7 +715,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 8 — Results
+  // Step 9 — Results
   // ---------------------------------------------------------------------------
 
   Widget _buildResultsStep() {
@@ -632,7 +738,8 @@ class _QuizScreenState extends State<QuizScreen> {
           children: [
             const Text('😬', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 16),
-            Text('Something went wrong:', style: Theme.of(context).textTheme.titleMedium),
+            Text('Something went wrong:',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(_error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 24),
@@ -657,76 +764,28 @@ class _QuizScreenState extends State<QuizScreen> {
                   fontWeight: FontWeight.bold,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            'Ranked by how well they match your palate.',
+            'Tap a card to see how each wine matches your palate.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
           ..._results!.asMap().entries.map((entry) {
             final rank = entry.key + 1;
             final wine = entry.value;
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: rank == 1
-                        ? Colors.amber.shade300
-                        : rank == 2
-                            ? Colors.grey.shade300
-                            : Colors.brown.shade200,
-                    child: Text(
-                      '$rank',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  title: Text(wine.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(
-                      'Match score: ${(wine.score * 100).toStringAsFixed(1)}%'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (rank == 1)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Text('🍷', style: TextStyle(fontSize: 20)),
-                        ),
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => NearbyScreen(
-                              wineName: wine.name,
-                              budgetMin: (_selectedBudget['min'] as double),
-                              budgetMax: (_selectedBudget['max'] as double),
-                            ),
-                          ),
-                        ),
-                        icon: const Icon(Icons.place, size: 16),
-                        label: const Text('Find Nearby'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          textStyle: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            return _WineResultCard(
+              rank: rank,
+              wine: wine,
+              userPrefs: _userPrefs,
+              attrOrder: _attrOrder,
+              budgetMin: _selectedBudget['min'] as double,
+              budgetMax: _selectedBudget['max'] as double,
             );
           }),
         ],
       ),
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // Shared scaffold wrapper
-  // ---------------------------------------------------------------------------
 
   Widget _stepShell({required Widget child}) {
     return SingleChildScrollView(
@@ -737,25 +796,336 @@ class _QuizScreenState extends State<QuizScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Score dot indicator widget
+// Expandable wine result card
 // ---------------------------------------------------------------------------
 
-class _ScoreDots extends StatelessWidget {
-  final int value;
-  const _ScoreDots({required this.value});
+class _WineResultCard extends StatefulWidget {
+  final int rank;
+  final WineRecommendation wine;
+  final Map<String, int> userPrefs;
+  final List<String> attrOrder;
+  final double budgetMin;
+  final double budgetMax;
+
+  const _WineResultCard({
+    required this.rank,
+    required this.wine,
+    required this.userPrefs,
+    required this.attrOrder,
+    required this.budgetMin,
+    required this.budgetMax,
+  });
+
+  @override
+  State<_WineResultCard> createState() => _WineResultCardState();
+}
+
+class _WineResultCardState extends State<_WineResultCard> {
+  bool _expanded = false;
+
+  Color _rankColor() {
+    return switch (widget.rank) {
+      1 => Colors.amber.shade300,
+      2 => Colors.grey.shade400,
+      3 => Colors.brown.shade300,
+      _ => Colors.grey.shade200,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: widget.rank == 1
+            ? BorderSide(color: color, width: 1.5)
+            : BorderSide.none,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() => _expanded = !_expanded),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- Header row ---
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: _rankColor(),
+                    child: Text(
+                      '${widget.rank}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.wine.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ),
+                            if (widget.rank == 1)
+                              const Text('🍷',
+                                  style: TextStyle(fontSize: 18)),
+                          ],
+                        ),
+                        Text(
+                          'Match: ${(widget.wine.score * 100).toStringAsFixed(1)}%',
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+
+              // --- Expanded: attribute comparison + Find Nearby ---
+              if (_expanded) ...[
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                // Column headers
+                Row(
+                  children: [
+                    const Expanded(child: SizedBox()),
+                    Text('You',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade500)),
+                    const SizedBox(width: 8),
+                    Text('Wine',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: color)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ...widget.attrOrder.map((attr) {
+                  final userVal = widget.userPrefs[attr] ?? 3;
+                  final wineVal =
+                      (widget.wine.wineProfile[attr] ?? 0).round().clamp(1, 5);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            attr,
+                            style: const TextStyle(fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        _ScoreDots(value: userVal, color: Colors.grey.shade400),
+                        const SizedBox(width: 8),
+                        _ScoreDots(value: wineVal, color: color),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => NearbyScreen(
+                          wineName: widget.wine.name,
+                          budgetMin: widget.budgetMin,
+                          budgetMax: widget.budgetMax,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.place, size: 16),
+                    label: const Text('Find Nearby'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      textStyle: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Wizard commentary bubble (food pairing step)
+// ---------------------------------------------------------------------------
+
+class _WizardComment extends StatelessWidget {
+  final String text;
+  const _WizardComment({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.deepPurple.shade100),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('🧙‍♂️', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                color: Colors.deepPurple.shade800,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Food selection card
+// ---------------------------------------------------------------------------
+
+class _FoodCard extends StatelessWidget {
+  final Map<String, String> option;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool fullWidth;
+
+  const _FoodCard({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+    this.fullWidth = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final label = option['label']!;
+    final emoji = option['emoji']!;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        decoration: BoxDecoration(
+          color: selected
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? primary : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: primary.withValues(alpha: 0.18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: fullWidth ? 20 : 12,
+          vertical: 14,
+        ),
+        child: fullWidth
+            // Full-width layout: emoji + label side by side
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 28)),
+                  const SizedBox(width: 12),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              )
+            // Grid cell layout: emoji on top, label below
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 30)),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.3,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Score dot indicator
+// ---------------------------------------------------------------------------
+
+class _ScoreDots extends StatelessWidget {
+  final int value;
+  final Color? color;
+  const _ScoreDots({required this.value, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final dotColor = color ?? Theme.of(context).colorScheme.primary;
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
         return Container(
-          margin: const EdgeInsets.only(left: 4),
-          width: 10,
-          height: 10,
+          margin: const EdgeInsets.only(left: 3),
+          width: 9,
+          height: 9,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: i < value ? color : Colors.grey.shade300,
+            color: i < value ? dotColor : Colors.grey.shade300,
           ),
         );
       }),
