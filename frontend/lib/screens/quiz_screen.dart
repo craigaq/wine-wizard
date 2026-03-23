@@ -32,6 +32,8 @@ class _QuizScreenState extends State<QuizScreen> {
   int _flavor = 3;
   String _foodPairing = 'none'; // stores the backend ID
   String _budgetLabel = '\$16 – \$25';
+  bool _prefDry = false;
+  String _overrideMode = 'use_pairing_logic';
 
   // --- Results state ---
   List<WineRecommendation>? _results;
@@ -157,19 +159,30 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
-  /// Calls the lightweight GET /check-pairing endpoint and shows the
-  /// Gastro-Clash bottom sheet if a conflict is detected.
+  /// Calls the lightweight GET /check-pairing endpoint and surfaces:
+  ///   • Gastro-Clash alert  — food/palate attribute mismatch
+  ///   • Palate Paradox sheet — dry preference vs sweet-pairing food
   Future<void> _checkAndHandlePairingClash() async {
     try {
-      final clash = await ApiService().checkPairing(
+      final result = await ApiService().checkPairing(
         foodType: _foodPairing,
         crispnessAcidity: _crispness,
         weightBody: _weight,
         textureTannin: _texture,
         flavorIntensity: _flavor,
+        prefDry: _prefDry,
       );
-      if (clash != null && mounted) {
-        await showGastroClashAlert(context, clash, _applyGastroAdjustment);
+      if (!mounted) return;
+      if (result.gastroClash != null) {
+        await showGastroClashAlert(context, result.gastroClash!, _applyGastroAdjustment);
+      }
+      if (!mounted) return;
+      if (result.palateParadox != null) {
+        await showPalateParadoxSheet(
+          context,
+          result.palateParadox!,
+          (action) => setState(() => _overrideMode = action),
+        );
       }
     } catch (_) {
       // Non-critical — proceed without blocking navigation
@@ -193,6 +206,8 @@ class _QuizScreenState extends State<QuizScreen> {
       _flavor = 3;
       _foodPairing = 'none';
       _budgetLabel = '\$16 – \$25';
+      _prefDry = false;
+      _overrideMode = 'use_pairing_logic';
       _results = null;
       _loading = false;
       _error = null;
@@ -219,6 +234,8 @@ class _QuizScreenState extends State<QuizScreen> {
         textureTannin: _texture,
         flavorIntensity: _flavor,
         foodPairing: _foodPairing,
+        prefDry: _prefDry,
+        overrideMode: _overrideMode,
       );
       setState(() {
         _results = result.recommendations;
@@ -458,6 +475,23 @@ class _QuizScreenState extends State<QuizScreen> {
           Text(
             "What's on the table tonight? The Wizard will fine-tune your match.",
             style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          // Dry preference toggle — activates Palate Paradox detection
+          Card(
+            margin: EdgeInsets.zero,
+            child: SwitchListTile(
+              dense: true,
+              secondary: const Text('🍷', style: TextStyle(fontSize: 20)),
+              title: const Text('I prefer dry wines'),
+              subtitle: const Text('The Wizard will flag sweet-pairing conflicts'),
+              value: _prefDry,
+              onChanged: (v) => setState(() {
+                _prefDry = v;
+                // Reset any previously chosen override when preference changes
+                _overrideMode = 'use_pairing_logic';
+              }),
+            ),
           ),
           const SizedBox(height: 24),
 

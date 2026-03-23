@@ -48,27 +48,55 @@ class GastroClash {
   }
 }
 
+class PalateParadox {
+  final String status;
+  final String message;
+  final List<Map<String, String>> options;
+
+  PalateParadox({
+    required this.status,
+    required this.message,
+    required this.options,
+  });
+
+  factory PalateParadox.fromJson(Map<String, dynamic> json) {
+    return PalateParadox(
+      status: json['status'] as String,
+      message: json['message'] as String,
+      options: (json['options'] as List)
+          .map((o) => Map<String, String>.from(o as Map))
+          .toList(),
+    );
+  }
+}
+
 class WineRecommendation {
   final String name;
+  final String skuId;
   final double score;
   final Map<String, double> attributeScores;
   final Map<String, double> wineProfile;
+  final Map<String, dynamic> rawMetrics;
 
   WineRecommendation({
     required this.name,
+    required this.skuId,
     required this.score,
     required this.attributeScores,
     required this.wineProfile,
+    required this.rawMetrics,
   });
 
   factory WineRecommendation.fromJson(Map<String, dynamic> json) {
     return WineRecommendation(
-      name: json['name'] as String,
-      score: (json['score'] as num).toDouble(),
+      name:    json['name']    as String,
+      skuId:   (json['sku_id'] as String?) ?? '',
+      score:   (json['score']  as num).toDouble(),
       attributeScores: (json['attribute_scores'] as Map<String, dynamic>)
           .map((k, v) => MapEntry(k, (v as num).toDouble())),
       wineProfile: ((json['wine_profile'] as Map<String, dynamic>?) ?? {})
           .map((k, v) => MapEntry(k, (v as num).toDouble())),
+      rawMetrics: (json['raw_metrics'] as Map<String, dynamic>?) ?? {},
     );
   }
 }

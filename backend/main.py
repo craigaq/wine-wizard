@@ -1,4 +1,13 @@
+import logging
 from fastapi import FastAPI, HTTPException, Query
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(name)s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+# Show per-criterion Middle Ground debug lines from the interceptor
+logging.getLogger("wine_wizard.interceptor").setLevel(logging.DEBUG)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -8,9 +17,12 @@ import dataclasses
 from recommendation_service import (
     RecommendationService, WineProfile, UserPreferences,
     check_food_pairing_conflicts,
+    resolve_pairing_conflict,
 )
+from wine_catalog import WINE_DATABASE
 from term_mapping import TECHNICAL_TO_UI
-from local_sourcing import find_nearby
+from interceptor import run_recommendation_middleware, run_merchant_middleware, TieredMerchantResults
+from local_sourcing import TIER_LABELS, TIER_REGION_HINTS
 
 app = FastAPI(title="Wine Wizard API")
 
@@ -22,34 +34,8 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
-# Wine catalog
-# ---------------------------------------------------------------------------
-
-_CATALOG: list[WineProfile] = [
-    # Whites & Sparkling
-    WineProfile("Sauvignon Blanc",  acidity=4.5, body=2.0, tannin=0.5, aromatics=4.0),
-    WineProfile("Chardonnay",       acidity=3.0, body=3.5, tannin=0.5, aromatics=3.5),
-    WineProfile("Riesling",         acidity=4.5, body=1.5, tannin=0.5, aromatics=4.5),
-    WineProfile("Pinot Grigio",     acidity=3.5, body=2.0, tannin=0.5, aromatics=2.5),
-    WineProfile("Viognier",         acidity=2.5, body=3.5, tannin=0.5, aromatics=5.0),
-    WineProfile("Albariño",         acidity=4.5, body=2.0, tannin=0.5, aromatics=3.5),
-    WineProfile("Gewürztraminer",   acidity=3.0, body=2.5, tannin=0.5, aromatics=5.0),
-    WineProfile("Moscato",          acidity=3.0, body=1.5, tannin=0.5, aromatics=5.0),
-    WineProfile("Prosecco",         acidity=4.5, body=1.5, tannin=0.5, aromatics=3.0),
-    WineProfile("Grenache Blanc",   acidity=3.0, body=3.0, tannin=0.5, aromatics=3.5),
-    # Reds
-    WineProfile("Pinot Noir",           acidity=3.5, body=2.5, tannin=2.5, aromatics=4.0),
-    WineProfile("Cabernet Sauvignon",   acidity=3.0, body=4.5, tannin=4.5, aromatics=4.5),
-    WineProfile("Malbec",               acidity=3.0, body=4.0, tannin=4.0, aromatics=3.5),
-    WineProfile("Syrah/Shiraz",         acidity=3.0, body=4.5, tannin=4.0, aromatics=4.5),
-    WineProfile("Grenache",             acidity=3.0, body=3.5, tannin=2.5, aromatics=3.5),
-    WineProfile("Tempranillo",          acidity=3.5, body=3.5, tannin=3.5, aromatics=3.5),
-    WineProfile("Sangiovese",           acidity=4.0, body=3.0, tannin=3.5, aromatics=3.5),
-    WineProfile("Zinfandel",            acidity=3.0, body=4.0, tannin=3.5, aromatics=4.5),
-    WineProfile("Nebbiolo",             acidity=4.0, body=4.0, tannin=5.0, aromatics=4.0),
-    WineProfile("Bordeaux Blend",       acidity=3.5, body=4.5, tannin=4.5, aromatics=4.0),
-]
+# Wine catalog is maintained in wine_catalog.py (Enhanced Data Schema)
+_CATALOG = WINE_DATABASE
 
 _service = RecommendationService(_CATALOG)
 
@@ -65,13 +51,20 @@ class RecommendRequest(BaseModel):
     flavor_intensity: int  = Field(..., ge=1, le=5, description="Flavor Intensity (Aromatics) preference 1-5")
     food_pairing: Optional[str] = Field("none", description="Food pairing backend ID")
     top_n: Optional[int]   = Field(None, ge=1, description="Return top N results")
+    pref_dry: bool         = Field(False, description="User prefers dry wines")
+    override_mode: str     = Field(
+        "use_pairing_logic",
+        description="Palate Paradox resolution: filter_by_profile | use_pairing_logic | find_compromise",
+    )
 
 
 class WineResult(BaseModel):
     name: str
+    sku_id: str
     score: float
     attribute_scores: dict[str, float]
-    wine_profile: dict[str, float]   # raw 1-5 attribute values keyed by UI label
+    wine_profile: dict[str, float]   # normalised 1-5 attribute values keyed by UI label
+    raw_metrics: dict                 # real-world schema values for "under the hood" display
 
 
 class RecommendResponse(BaseModel):
@@ -79,6 +72,7 @@ class RecommendResponse(BaseModel):
     ui_labels: dict[str, str]
     conflict_alert: Optional[dict] = None
     gastro_clash: Optional[dict] = None
+    pairing_conflict: Optional[dict] = None
 
 
 class NearbyRequest(BaseModel):
@@ -87,24 +81,53 @@ class NearbyRequest(BaseModel):
     user_lng: float
     budget_min: float = 0.0
     budget_max: float = 9999.0
+    show_global_tier: bool = Field(
+        False,
+        description=(
+            "Override the Pricing Precedent gate — show Tier 3 (Global Icon) "
+            "even when it costs more than 5× the cheapest Tier 1 option."
+        ),
+    )
 
 
 class MerchantResponse(BaseModel):
     name: str
     address: str
     brand: str
+    region: str         # wine production region (e.g., "Barossa Valley, SA")
+    tier: int           # 1 | 2 | 3
+    tier_label: str     # "The Local Hero" | "The National Rival" | "The Global Icon"
     distance_km: float
     price_usd: float
     score: float
+    confidence_score: float
+    needs_verification: bool
+
+
+class TierResponse(BaseModel):
+    tier: int
+    label: str          # "The Local Hero" etc.
+    region_hint: str    # Priority regions for this tier
+    best_match: Optional[MerchantResponse]
+    all_matches: list[MerchantResponse]
+    suppressed: bool = False
+    suppression_reason: Optional[str] = None
+    persona: Optional[str] = None           # "The Proud Neighbour" etc.
+    wit: Optional[str] = None               # Short punchy one-liner
+    edu_insight: Optional[str] = None       # Template-filled educational hook
+    comparison_note: Optional[str] = None   # How this tier differs from the other two
 
 
 class NearbyResponse(BaseModel):
     wine_name: str
-    merchants: list[MerchantResponse]
+    merchants: list[MerchantResponse]   # flat sorted list (backward compat)
+    tiers: list[TierResponse]           # three geographic buckets
+    pricing_precedent_applied: bool
 
 
 class CheckPairingResponse(BaseModel):
     gastro_clash: Optional[dict] = None
+    pairing_conflict: Optional[dict] = None
 
 
 # ---------------------------------------------------------------------------
@@ -123,11 +146,13 @@ def check_pairing(
     weight_body: int = Query(..., ge=1, le=5),
     texture_tannin: int = Query(..., ge=1, le=5),
     flavor_intensity: int = Query(..., ge=1, le=5),
+    pref_dry: bool = Query(False, description="User prefers dry wines"),
 ):
     """
-    Lightweight endpoint: checks for food/palate clashes without running
-    the full recommendation engine. Called immediately after food selection
-    so the UI can surface a Gastro-Clash alert before the quiz is complete.
+    Lightweight endpoint: checks for food/palate clashes — both Gastro-Clash
+    (palate attribute mismatches) and Palate Paradox (dry preference vs. a
+    sweet-pairing food choice) — without running the full recommendation engine.
+    Called immediately after food selection so the UI can surface alerts.
     """
     try:
         prefs = UserPreferences(
@@ -136,13 +161,16 @@ def check_pairing(
             texture_tannin=texture_tannin,
             flavor_intensity=flavor_intensity,
             food_pairing=food_type,
+            pref_dry=pref_dry,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
-    clash = check_food_pairing_conflicts(prefs)
+    clash   = check_food_pairing_conflicts(prefs)
+    paradox = resolve_pairing_conflict(prefs)
     return CheckPairingResponse(
         gastro_clash=dataclasses.asdict(clash) if clash else None,
+        pairing_conflict=dataclasses.asdict(paradox) if paradox else None,
     )
 
 
@@ -191,12 +219,26 @@ def _build_conflict_alert(prefs: UserPreferences) -> dict | None:
 
 
 def _wine_profile_dict(wine: WineProfile) -> dict[str, float]:
-    """Return a wine's raw attribute profile keyed by UI labels."""
+    """Return a wine's normalised 1-5 attribute profile keyed by UI labels (for radar chart)."""
     return {
         TECHNICAL_TO_UI["acidity"]:   wine.acidity,
         TECHNICAL_TO_UI["body"]:      wine.body,
         TECHNICAL_TO_UI["tannin"]:    wine.tannin,
         TECHNICAL_TO_UI["aromatics"]: wine.aromatics,
+    }
+
+
+def _raw_metrics_dict(wine: WineProfile) -> dict:
+    """Return the real-world Enhanced Data Schema fields for 'under the hood' display."""
+    return {
+        "sku_id":             wine.sku_id,
+        "location_tag":       wine.location_tag,
+        "acidity_ph":         wine.acidity_ph,
+        "aromatic_intensity": wine.aromatic_intensity,
+        "tannin_structure":   wine.tannin_structure,
+        "abv_percentage":     wine.abv_percentage,
+        "residual_sugar_gl":  wine.residual_sugar_gl,
+        "style":              wine.style,
     }
 
 
@@ -209,19 +251,23 @@ def recommend(req: RecommendRequest):
             texture_tannin=req.texture_tannin,
             flavor_intensity=req.flavor_intensity,
             food_pairing=req.food_pairing,
+            pref_dry=req.pref_dry,
+            override_mode=req.override_mode,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
-    results = _service.recommend(prefs, top_n=req.top_n)
+    results, paradox = run_recommendation_middleware(_service, prefs, top_n=req.top_n)
 
     return RecommendResponse(
         recommendations=[
             WineResult(
                 name=r.wine.name,
+                sku_id=r.wine.sku_id,
                 score=r.score,
                 attribute_scores=r.attribute_scores,
                 wine_profile=_wine_profile_dict(r.wine),
+                raw_metrics=_raw_metrics_dict(r.wine),
             )
             for r in results
         ],
@@ -232,29 +278,63 @@ def recommend(req: RecommendRequest):
             if (clash := check_food_pairing_conflicts(prefs))
             else None
         ),
+        pairing_conflict=dataclasses.asdict(paradox) if paradox else None,
+    )
+
+
+def _merchant_response(r) -> MerchantResponse:
+    """Build a MerchantResponse from a MerchantResult."""
+    return MerchantResponse(
+        name=r.merchant.name,
+        address=r.merchant.address,
+        brand=r.brand,
+        region=r.region,
+        tier=r.tier,
+        tier_label=TIER_LABELS.get(r.tier, "Unknown"),
+        distance_km=r.distance_km,
+        price_usd=r.merchant.price_usd,
+        score=r.score,
+        confidence_score=r.confidence_score,
+        needs_verification=r.needs_verification,
     )
 
 
 @app.post("/nearby", response_model=NearbyResponse)
 def nearby(req: NearbyRequest):
-    results = find_nearby(
+    tiered: TieredMerchantResults = run_merchant_middleware(
         wine_name=req.wine_name,
         user_lat=req.user_lat,
         user_lng=req.user_lng,
         budget_min=req.budget_min,
         budget_max=req.budget_max,
+        show_global_tier=req.show_global_tier,
     )
+
+    flat = [_merchant_response(r) for r in tiered.all_results]
+
+    tier_responses = []
+    for t in (1, 2, 3):
+        bucket    = tiered.tiers.get(t, [])
+        matches   = [_merchant_response(r) for r in bucket]
+        suppressed = (t == 3 and tiered.tier_3_suppressed)
+        blurb_obj  = tiered.blurbs.get(t)
+        tier_responses.append(TierResponse(
+            tier=t,
+            label=TIER_LABELS[t],
+            region_hint=TIER_REGION_HINTS[t],
+            best_match=matches[0] if matches else None,
+            all_matches=matches,
+            suppressed=suppressed,
+            suppression_reason=tiered.suppression_reason if suppressed else None,
+            persona=blurb_obj.persona if blurb_obj else None,
+            wit=blurb_obj.wit if blurb_obj else None,
+            edu_insight=blurb_obj.edu_insight if blurb_obj else None,
+            comparison_note=blurb_obj.comparison_note if blurb_obj else None,
+        ))
+
     return NearbyResponse(
         wine_name=req.wine_name,
-        merchants=[
-            MerchantResponse(
-                name=r.merchant.name,
-                address=r.merchant.address,
-                brand=r.brand,
-                distance_km=r.distance_km,
-                price_usd=r.merchant.price_usd,
-                score=r.score,
-            )
-            for r in results
-        ],
+        merchants=flat,
+        tiers=tier_responses,
+        pricing_precedent_applied=tiered.tier_3_suppressed,
     )

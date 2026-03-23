@@ -3,10 +3,12 @@
 /// Magical card-based palate selector. Shows a large animated hero card for
 /// the selected level, 5 tap-to-select thumbnail cards below, a wand-swirl
 /// sparkle overlay on selection, and a Web Audio arpeggio chime.
+library;
 
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:js' as js;
 import 'dart:math' as math;
+
+import 'package:wine_wizard/stubs/chime_stub.dart'
+    if (dart.library.html) 'package:wine_wizard/stubs/chime_web.dart';
 
 import 'package:flutter/material.dart';
 
@@ -23,40 +25,40 @@ class _Card {
 }
 
 const _crispness = [
-  _Card('😴', 'Dead Flat',        'Barely a whisper of freshness — calm and still'),
-  _Card('🌿', 'Mellow Fresh',     'A soft, gentle tingle on the tongue'),
-  _Card('🍋', 'Citrus Bright',    'Lively and refreshing, like squeezing a lemon'),
-  _Card('⚡', 'Electric Zing!',   'Zippy and mouth-watering — it crackles!'),
-  _Card('🌩️', 'Lightning Bolt!',  'Eye-wateringly sharp — buckle up'),
+  _Card('😴', 'Dead Flat', 'Barely a whisper of freshness — calm and still'),
+  _Card('🌿', 'Mellow Fresh', 'A soft, gentle tingle on the tongue'),
+  _Card('🍋', 'Citrus Bright', 'Lively and refreshing, like squeezing a lemon'),
+  _Card('⚡', 'Electric Zing!', 'Zippy and mouth-watering — it crackles!'),
+  _Card('🌩️', 'Lightning Bolt!', 'Eye-wateringly sharp — buckle up'),
 ];
 
 const _weight = [
-  _Card('🕊️', 'Feather Light',    'Barely there — delicate as air'),
-  _Card('☁️', 'Cloud Soft',       'Floaty, easy-drinking and graceful'),
-  _Card('🌊', 'Flowing Wave',     'Balanced and nicely present'),
-  _Card('🐻', 'Full & Huggable',  'Rich, warming and satisfying'),
-  _Card('🪨', 'Mighty Boulder!',  'A true heavyweight — big and bold'),
+  _Card('🕊️', 'Feather Light', 'Barely there — delicate as air'),
+  _Card('☁️', 'Cloud Soft', 'Floaty, easy-drinking and graceful'),
+  _Card('🌊', 'Flowing Wave', 'Balanced and nicely present'),
+  _Card('🐻', 'Full & Huggable', 'Rich, warming and satisfying'),
+  _Card('🪨', 'Mighty Boulder!', 'A true heavyweight — big and bold'),
 ];
 
 const _texture = [
-  _Card('🧈', 'Pure Silk',        'Buttery smooth — absolutely zero grip'),
-  _Card('🧸', 'Velvet Hug',       'Cosy, gentle — like a soft blanket'),
-  _Card('🌿', 'Light Grip',       'Pleasantly present — easy to enjoy'),
-  _Card('🌰', 'Firm Grip',        'Noticeably grippy — chewy and dry'),
-  _Card('🌵', 'Desert Dry!',      'Maximum dryness — the Sahara in a glass'),
+  _Card('🧈', 'Pure Silk', 'Buttery smooth — absolutely zero grip'),
+  _Card('🧸', 'Velvet Hug', 'Cosy, gentle — like a soft blanket'),
+  _Card('🌿', 'Light Grip', 'Pleasantly present — easy to enjoy'),
+  _Card('🌰', 'Firm Grip', 'Noticeably grippy — chewy and dry'),
+  _Card('🌵', 'Desert Dry!', 'Maximum dryness — the Sahara in a glass'),
 ];
 
 const _flavor = [
-  _Card('🤫', 'Whisper Quiet',    'Barely there — a ghost of flavour'),
-  _Card('🌱', 'Gently Speaks',    'Soft, understated, quietly charming'),
-  _Card('🌺', 'In Full Bloom',    'Expressive and pleasant — lovely'),
-  _Card('🌟', 'Star Power!',      'Vibrant and exciting — the spotlight is yours'),
-  _Card('💥', 'Flavour Bomb!',    'Completely off the charts — hold on tight'),
+  _Card('🤫', 'Whisper Quiet', 'Barely there — a ghost of flavour'),
+  _Card('🌱', 'Gently Speaks', 'Soft, understated, quietly charming'),
+  _Card('🌺', 'In Full Bloom', 'Expressive and pleasant — lovely'),
+  _Card('🌟', 'Star Power!', 'Vibrant and exciting — the spotlight is yours'),
+  _Card('💥', 'Flavour Bomb!', 'Completely off the charts — hold on tight'),
 ];
 
 List<_Card> _cardsFor(String title) {
   if (title.contains('Crisp') || title.contains('Acidity')) return _crispness;
-  if (title.contains('Weight') || title.contains('Body'))   return _weight;
+  if (title.contains('Weight') || title.contains('Body')) return _weight;
   if (title.contains('Texture') || title.contains('Tannin')) return _texture;
   return _flavor;
 }
@@ -68,10 +70,7 @@ List<_Card> _cardsFor(String title) {
 const _sparkleEmojis = ['✨', '⭐', '💫', '🌟', '✨', '💫', '⭐', '🌟'];
 
 // Fixed angles for particles so they fan out evenly
-final _particleAngles = List.generate(
-  8,
-  (i) => i * (2 * math.pi / 8) + 0.3,
-);
+final _particleAngles = List.generate(8, (i) => i * (2 * math.pi / 8) + 0.3);
 
 // ---------------------------------------------------------------------------
 // Public widget
@@ -115,9 +114,10 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _heroScale = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _heroCtrl, curve: Curves.elasticOut),
-    );
+    _heroScale = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _heroCtrl, curve: Curves.elasticOut));
 
     _wandCtrl = AnimationController(
       vsync: this,
@@ -125,9 +125,10 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
     );
 
     // Wand completes 2 full orbits
-    _wandAngle = Tween<double>(begin: 0.0, end: 4 * math.pi).animate(
-      CurvedAnimation(parent: _wandCtrl, curve: Curves.easeInOut),
-    );
+    _wandAngle = Tween<double>(
+      begin: 0.0,
+      end: 4 * math.pi,
+    ).animate(CurvedAnimation(parent: _wandCtrl, curve: Curves.easeInOut));
 
     // Particles travel outward then the fade kills them
     _particleDist = CurvedAnimation(
@@ -161,7 +162,7 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
 
   void _playChime() {
     try {
-      js.context.callMethod('playMagicChime');
+      playMagicChime();
     } catch (_) {
       // Web Audio not available — fail silently
     }
@@ -171,9 +172,9 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
 
   @override
   Widget build(BuildContext context) {
-    final cards    = _cardsFor(widget.title);
+    final cards = _cardsFor(widget.title);
     final selected = cards[widget.value - 1];
-    final cs       = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,10 +182,9 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
         // Title
         Text(
           widget.title,
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(widget.description, style: Theme.of(context).textTheme.bodyMedium),
@@ -208,10 +208,7 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          cs.primaryContainer,
-                          cs.secondaryContainer,
-                        ],
+                        colors: [cs.primaryContainer, cs.secondaryContainer],
                       ),
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
@@ -228,10 +225,8 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                         // Big cartoon emoji — swaps on value change
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 350),
-                          transitionBuilder: (child, anim) => ScaleTransition(
-                            scale: anim,
-                            child: child,
-                          ),
+                          transitionBuilder: (child, anim) =>
+                              ScaleTransition(scale: anim, child: child),
                           child: Text(
                             selected.emoji,
                             key: ValueKey(widget.value),
@@ -265,8 +260,9 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                               style: TextStyle(
                                 fontSize: 11,
                                 height: 1.4,
-                                color: cs.onPrimaryContainer
-                                    .withValues(alpha: 0.70),
+                                color: cs.onPrimaryContainer.withValues(
+                                  alpha: 0.70,
+                                ),
                               ),
                             ),
                           ),
@@ -291,12 +287,9 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                             children: [
                               // Orbiting wand
                               Positioned(
-                                left: 120 +
-                                    math.cos(_wandAngle.value) * 88 -
-                                    14,
-                                top: 105 +
-                                    math.sin(_wandAngle.value) * 72 -
-                                    14,
+                                left:
+                                    120 + math.cos(_wandAngle.value) * 88 - 14,
+                                top: 105 + math.sin(_wandAngle.value) * 72 - 14,
                                 child: const Text(
                                   '🪄',
                                   style: TextStyle(fontSize: 28),
@@ -306,23 +299,27 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                               // Sparkle particles
                               for (var i = 0; i < 8; i++)
                                 Positioned(
-                                  left: 120 +
+                                  left:
+                                      120 +
                                       math.cos(_particleAngles[i]) *
                                           (_particleDist.value * 100) -
                                       10,
-                                  top: 105 +
+                                  top:
+                                      105 +
                                       math.sin(_particleAngles[i]) *
                                           (_particleDist.value * 80) -
                                       10,
                                   child: Opacity(
-                                    opacity: (1.0 - _particleDist.value)
-                                        .clamp(0.0, 1.0),
+                                    opacity: (1.0 - _particleDist.value).clamp(
+                                      0.0,
+                                      1.0,
+                                    ),
                                     child: Text(
                                       _sparkleEmojis[i],
                                       style: TextStyle(
-                                        fontSize: 10 +
-                                            (1.0 - _particleDist.value) *
-                                                10,
+                                        fontSize:
+                                            10 +
+                                            (1.0 - _particleDist.value) * 10,
                                       ),
                                     ),
                                   ),
@@ -345,21 +342,19 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: List.generate(5, (i) {
-            final v    = i + 1;
+            final v = i + 1;
             final card = cards[i];
-            final sel  = widget.value == v;
+            final sel = widget.value == v;
 
             return GestureDetector(
               onTap: () => _select(v),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
-                width:  sel ? 64 : 54,
+                width: sel ? 64 : 54,
                 height: sel ? 84 : 72,
                 decoration: BoxDecoration(
-                  color: sel
-                      ? cs.primary
-                      : cs.surfaceContainerHighest,
+                  color: sel ? cs.primary : cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: sel
                       ? [
@@ -374,19 +369,14 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      card.emoji,
-                      style: TextStyle(fontSize: sel ? 28 : 22),
-                    ),
+                    Text(card.emoji, style: TextStyle(fontSize: sel ? 28 : 22)),
                     const SizedBox(height: 3),
                     Text(
                       '$v',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: sel
-                            ? Colors.white
-                            : cs.onSurfaceVariant,
+                        color: sel ? Colors.white : cs.onSurfaceVariant,
                       ),
                     ),
                   ],

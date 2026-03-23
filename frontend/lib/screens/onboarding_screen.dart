@@ -25,6 +25,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Backup listener — ensures _currentPage always reflects the real page
+    // even if onPageChanged fires late due to frame jank.
+    _controller.addListener(() {
+      final p = _controller.page?.round() ?? 0;
+      if (p != _currentPage) setState(() => _currentPage = p);
+    });
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -33,75 +44,78 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      // Match the dark-purple card backgrounds so the button row blends in.
+      backgroundColor: const Color(0xFF1A0030),
+      body: Column(
         children: [
-          PageView(
-            controller: _controller,
-            onPageChanged: (p) => setState(() => _currentPage = p),
-            children: const [
-              _CardIntroduction(),
-              _CardPalatePromise(),
-              _CardLocalLegend(),
-            ],
+          // Pages fill all available vertical space above the button row.
+          Expanded(
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: 3,
+              onPageChanged: (p) => setState(() => _currentPage = p),
+              itemBuilder: (context, index) => switch (index) {
+                0 => const _CardIntroduction(),
+                1 => const _CardPalatePromise(),
+                _ => const _CardLocalLegend(),
+              },
+            ),
           ),
 
-          // Page dots + button anchored at the bottom
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Dot indicators
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(3, (i) {
-                        final active = i == _currentPage;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: active ? 24 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: active
-                                ? Colors.amber.shade400
-                                : Colors.white.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        );
-                      }),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // CTA button
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.amber.shade600,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+          // Button row lives OUTSIDE the PageView — no Positioned/SafeArea
+          // ambiguity with Android 16 edge-to-edge insets.
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 12, 32, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Dot indicators
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(3, (i) {
+                      final active = i == _currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: active ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? Colors.amber.shade400
+                              : Colors.white.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        onPressed: _next,
-                        child: Text(
-                          _currentPage == 2 ? "Let's Get Started!" : 'Next',
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // CTA button
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.amber.shade600,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                      onPressed: _next,
+                      child: Text(
+                        _currentPage == 2 ? "Let's Get Started!" : 'Next',
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -157,7 +171,7 @@ class _CardIntroductionState extends State<_CardIntroduction>
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 48, 32, 140),
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -234,7 +248,7 @@ class _CardPalatePromise extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 48, 32, 140),
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -348,7 +362,7 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 48, 32, 140),
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

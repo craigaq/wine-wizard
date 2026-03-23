@@ -31,12 +31,65 @@ from term_mapping import TECHNICAL_TO_UI
 
 @dataclass
 class WineProfile:
-    """Technical attribute profile for a wine (all values 1-5 scale)."""
-    name: str
-    acidity: float
-    body: float
-    tannin: float
-    aromatics: float
+    """Technical attribute profile for a wine.
+
+    Enhanced Data Schema — real-world measurable fields
+    ────────────────────────────────────────────────────
+    sku_id             — Unique identifier for inventory tracking.
+    acidity_ph         — pH 2.8–4.0; lower = more acidic = higher crispness.
+    body               — 1-5 expert rating (Light → Full); no direct lab equivalent.
+    tannin_structure   — Integer 1 (Silk/Low) – 5 (Grip/High); tannin perception.
+    aromatic_intensity — Integer 1 (Neutral) – 10 (High); drives Middle Ground logic.
+    abv_percentage     — Alcohol by Volume %; high ABV + spicy food = burn sensation.
+    residual_sugar_gl  — g/L RS; < 5 g/L = "dry on paper" (OIV standard). CRITICAL.
+    style              — "Dry" | "Off-Dry" | "Sweet"; distinguishes label variants.
+    varietal           — Grape variety for filter matching; defaults to name.
+
+    Internal scoring fields (derived in __post_init__ — NOT constructor parameters)
+    ────────────────────────────────────────────────────────────────────────────────
+    acidity    — Normalised 1-5 from acidity_ph  (inverted: lower pH → higher score).
+                 Formula: 1 + (4.0 − ph) / 1.2 × 4
+    tannin     — Float cast of tannin_structure (1-5 → 1.0-5.0).
+    aromatics  — aromatic_intensity / 2.0  (maps 1-10 → 0.5-5.0 scoring range).
+    alcohol_abv — Alias of abv_percentage (backward-compat with interceptor logging).
+    """
+    name:               str
+    acidity_ph:         float       # pH 2.8–4.0
+    body:               float       # 1-5 expert rating
+    tannin_structure:   int         # 1-5
+    aromatic_intensity: int         # 1-10
+    abv_percentage:     float = 13.0
+    residual_sugar_gl:  float = 2.0
+    style:              str   = "Dry"
+    varietal:           str   = ""
+    sku_id:             str   = ""
+    location_tag:       str   = ""   # "Local" | "National" | "International"
+    # ── Derived scoring fields (populated by __post_init__, not in constructor) ──
+    acidity:     float = field(init=False, default=0.0)
+    tannin:      float = field(init=False, default=0.0)
+    aromatics:   float = field(init=False, default=0.0)
+    alcohol_abv: float = field(init=False, default=0.0)
+
+    def __post_init__(self) -> None:
+        if not self.varietal:
+            self.varietal = self.name
+        # Invert pH to a 1-5 crispness score: pH 2.8 → 5.0,  pH 4.0 → 1.0
+        self.acidity     = round(1.0 + (4.0 - self.acidity_ph) / 1.2 * 4.0, 2)
+        self.tannin      = float(self.tannin_structure)
+        # Map 1-10 intensity to 0.5-5.0 scoring range (halved)
+        self.aromatics   = self.aromatic_intensity / 2.0
+        self.alcohol_abv = self.abv_percentage
+
+
+# Wines the Wizard targets in "Find a Middle Ground" mode.
+# These varietals are technically dry but aromatically intense enough
+# to stand in for off-dry pairings with spicy food.
+COMPROMISE_VARIETALS: frozenset[str] = frozenset({
+    "Gewürztraminer",   # Dry Alsatian — lychee/rose, fermented bone-dry
+    "Chenin Blanc",     # Vouvray Sec  — honeyed texture, very high acid
+    "Grüner Veltliner", # Federspiel   — stone fruit, crisp, low ABV
+    "Viognier",         # Dry          — intensely floral, apricot/peach
+})
 
 
 @dataclass
@@ -46,12 +99,27 @@ class UserPreferences:
 
     Attribute names use UI labels; values are integers 1-5.
     food_pairing must be a key present in food_pairing.FOOD_PAIRING.
+
+    pref_dry:
+        True when the user has indicated they prefer dry wines.
+        Activates Palate Paradox detection for food pairings that favour
+        off-dry or sweet wines (e.g. spicy dishes → Riesling).
+
+    override_mode:
+        Resolution action chosen after a Palate Paradox is surfaced.
+        "filter_by_profile"  — exclude off-dry / sweet wines from results.
+        "use_pairing_logic"  — normal scoring; sweet wines are eligible.
+        "find_compromise"    — exclude dessert-sweet wines and boost
+                               aromatics weight to favour fruit-forward
+                               dry options (the middle-ground).
     """
     crispness_acidity: int      # Crispness (Acidity)
     weight_body: int            # Weight (Body)
     texture_tannin: int         # Texture (Tannin)
     flavor_intensity: int       # Flavor Intensity (Aromatics)
     food_pairing: str = "none"
+    pref_dry: bool = False
+    override_mode: str = "use_pairing_logic"
 
 
 @dataclass
@@ -60,6 +128,22 @@ class ScoredWine:
     wine: WineProfile
     score: float
     attribute_scores: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class PalateParadox:
+    """
+    Returned when a user's dry preference clashes with a food pairing that
+    classically calls for an off-dry or sweet wine.
+
+    status:   Always "CONFLICT" when present.
+    message:  Human-readable explanation surfaced in the UI.
+    options:  Ordered list of resolution choices, each with a display
+              'label' and a backend 'action' string.
+    """
+    status: str
+    message: str
+    options: list[dict]
 
 
 @dataclass
@@ -132,6 +216,52 @@ def _score_attribute(
     multiplier = pairing_cfg["multipliers"].get(attr, 1.0)
     boost = pairing_cfg["boosts"].get(attr, 0.0)
     return (w_final * multiplier) + boost
+
+
+# ---------------------------------------------------------------------------
+# Palate Paradox — sweetness classification + conflict resolution
+# ---------------------------------------------------------------------------
+
+# Sweetness thresholds are now carried directly on WineProfile.residual_sugar_gl
+# and evaluated by the middleware interceptor — see interceptor.py _filter_catalog().
+
+_COMPROMISE_AROMA_BOOST = 0.3  # find_compromise: boost aromatics weight (Priority 2 — high terpenes)
+_COMPROMISE_ACID_BOOST  = 0.2  # find_compromise: boost acidity  weight (Priority 4 — palate cleanse)
+
+
+def resolve_pairing_conflict(prefs: UserPreferences) -> PalateParadox | None:
+    """
+    Detect a Palate Paradox: user prefers dry wines but has chosen a food
+    that classically pairs with off-dry or sweet wines.
+
+    Returns a PalateParadox with three resolution options, or None when there
+    is no clash (user does not prefer dry, or food is not a sweet pairing).
+    """
+    pairing_cfg = FOOD_PAIRING.get(prefs.food_pairing, FOOD_PAIRING["none"])
+    if not prefs.pref_dry or not pairing_cfg.get("is_sweet_pairing", False):
+        return None
+
+    return PalateParadox(
+        status="CONFLICT",
+        message=(
+            "This dish pairs best with off-dry or fruit-forward wine to cool the heat, "
+            "but you've told the Wizard you prefer dry. How would you like to proceed?"
+        ),
+        options=[
+            {
+                "label":  "Stick to my Dry preference",
+                "action": "filter_by_profile",
+            },
+            {
+                "label":  "Trust the pairing (Recommended)",
+                "action": "use_pairing_logic",
+            },
+            {
+                "label":  "Find a middle ground (Dry but Fruit-Forward)",
+                "action": "find_compromise",
+            },
+        ],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -284,25 +414,41 @@ class RecommendationService:
         self,
         preferences: UserPreferences,
         top_n: int | None = None,
+        catalog: list[WineProfile] | None = None,
     ) -> list[ScoredWine]:
         """
-        Score every wine in the catalog and return them ranked best-first.
+        Score the provided catalog (or the full instance catalog if none is
+        given) and return wines ranked best-first.
+
+        Catalog filtering (Palate Paradox sweetness gate) is the responsibility
+        of the middleware interceptor — pass the pre-filtered list via the
+        catalog parameter.  The compromise aromatics boost is applied here
+        because it is a scoring concern, not a filtering concern.
 
         Parameters
         ----------
         preferences:
-            User preference inputs (1-5 per attribute) plus optional food pairing.
+            User preference inputs (1-5 per attribute) plus optional food
+            pairing, pref_dry flag, and override_mode.
         top_n:
             If provided, return only the top N wines.
-
-        Returns
-        -------
-        List of ScoredWine sorted by descending score.
+        catalog:
+            Pre-filtered wine list supplied by the middleware interceptor.
+            Falls back to the full instance catalog when omitted.
         """
+        wines = catalog if catalog is not None else self.wine_catalog
         pref_weights, pairing_cfg = self._build_scoring_context(preferences)
 
+        if preferences.override_mode == "find_compromise":
+            # Shallow-copy so we don't mutate the shared dict
+            pref_weights = dict(pref_weights)
+            # Priority 2 — High Terpenes: boost aromatics so fruit-forward dry wines score higher
+            pref_weights["aromatics"] = min(1.0, pref_weights["aromatics"] + _COMPROMISE_AROMA_BOOST)
+            # Priority 4 — Medium-High Acidity: boost acidity so palate-cleansing wines score higher
+            pref_weights["acidity"]   = min(1.0, pref_weights["acidity"]   + _COMPROMISE_ACID_BOOST)
+
         scored = sorted(
-            (self._score_wine(wine, pref_weights, pairing_cfg) for wine in self.wine_catalog),
+            (self._score_wine(wine, pref_weights, pairing_cfg) for wine in wines),
             key=lambda s: s.score,
             reverse=True,
         )

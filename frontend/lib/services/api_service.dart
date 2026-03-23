@@ -8,7 +8,9 @@ class ApiService {
   // Android emulator routes 10.0.2.2 → host machine's localhost.
   // For a physical device or iOS simulator, replace with your machine's LAN IP
   // e.g. 'http://192.168.1.X:8000'
-  static const String _baseUrl = 'http://localhost:8002';
+  // 10.0.2.2 routes to the host machine's localhost from the Android emulator.
+  // For a physical device, replace with your LAN IP (e.g. 'http://192.168.1.X:8002').
+  static const String _baseUrl = 'http://10.0.2.2:8002';
 
   Future<String> fetchHello() async {
     final response = await http.get(Uri.parse('$_baseUrl/hello'));
@@ -23,12 +25,15 @@ class ApiService {
     List<WineRecommendation> recommendations,
     ConflictAlert? alert,
     GastroClash? gastroClash,
+    PalateParadox? palateParadox,
   })> recommend({
     required int crispnessAcidity,
     required int weightBody,
     required int textureTannin,
     required int flavorIntensity,
     required String foodPairing,
+    bool prefDry = false,
+    String overrideMode = 'use_pairing_logic',
   }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/recommend'),
@@ -39,6 +44,8 @@ class ApiService {
         'texture_tannin': textureTannin,
         'flavor_intensity': flavorIntensity,
         'food_pairing': foodPairing,
+        'pref_dry': prefDry,
+        'override_mode': overrideMode,
       }),
     );
     if (response.statusCode == 200) {
@@ -46,24 +53,26 @@ class ApiService {
       final recommendations = (data['recommendations'] as List)
           .map((r) => WineRecommendation.fromJson(r as Map<String, dynamic>))
           .toList();
-      final alertJson = data['conflict_alert'] as Map<String, dynamic>?;
-      final gastroJson = data['gastro_clash'] as Map<String, dynamic>?;
+      final alertJson   = data['conflict_alert']   as Map<String, dynamic>?;
+      final gastroJson  = data['gastro_clash']      as Map<String, dynamic>?;
+      final paradoxJson = data['pairing_conflict']  as Map<String, dynamic>?;
       return (
         recommendations: recommendations,
-        alert: alertJson != null ? ConflictAlert.fromJson(alertJson) : null,
-        gastroClash:
-            gastroJson != null ? GastroClash.fromJson(gastroJson) : null,
+        alert:         alertJson   != null ? ConflictAlert.fromJson(alertJson)     : null,
+        gastroClash:   gastroJson  != null ? GastroClash.fromJson(gastroJson)      : null,
+        palateParadox: paradoxJson != null ? PalateParadox.fromJson(paradoxJson)   : null,
       );
     }
     throw Exception('Server returned status ${response.statusCode}');
   }
 
-  Future<GastroClash?> checkPairing({
+  Future<({GastroClash? gastroClash, PalateParadox? palateParadox})> checkPairing({
     required String foodType,
     required int crispnessAcidity,
     required int weightBody,
     required int textureTannin,
     required int flavorIntensity,
+    bool prefDry = false,
   }) async {
     final uri = Uri.parse('$_baseUrl/check-pairing').replace(queryParameters: {
       'food_type': foodType,
@@ -71,39 +80,45 @@ class ApiService {
       'weight_body': '$weightBody',
       'texture_tannin': '$textureTannin',
       'flavor_intensity': '$flavorIntensity',
+      'pref_dry': '$prefDry',
     });
     final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final clashJson = data['gastro_clash'] as Map<String, dynamic>?;
-      return clashJson != null ? GastroClash.fromJson(clashJson) : null;
+      final data        = jsonDecode(response.body) as Map<String, dynamic>;
+      final clashJson   = data['gastro_clash']     as Map<String, dynamic>?;
+      final paradoxJson = data['pairing_conflict'] as Map<String, dynamic>?;
+      return (
+        gastroClash:   clashJson   != null ? GastroClash.fromJson(clashJson)     : null,
+        palateParadox: paradoxJson != null ? PalateParadox.fromJson(paradoxJson) : null,
+      );
     }
     throw Exception('Server returned status ${response.statusCode}');
   }
 
-  Future<List<Merchant>> nearby({
+  Future<NearbyResponse> nearby({
     required String wineName,
     required double userLat,
     required double userLng,
     required double budgetMin,
     required double budgetMax,
+    bool showGlobalTier = false,
   }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/nearby'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'wine_name': wineName,
-        'user_lat': userLat,
-        'user_lng': userLng,
-        'budget_min': budgetMin,
-        'budget_max': budgetMax,
+        'wine_name':        wineName,
+        'user_lat':         userLat,
+        'user_lng':         userLng,
+        'budget_min':       budgetMin,
+        'budget_max':       budgetMax,
+        'show_global_tier': showGlobalTier,
       }),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return (data['merchants'] as List)
-          .map((m) => Merchant.fromJson(m as Map<String, dynamic>))
-          .toList();
+      return NearbyResponse.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
     }
     throw Exception('Server returned status ${response.statusCode}');
   }

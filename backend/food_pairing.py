@@ -27,6 +27,7 @@ Wizard's Secret (the logic behind each entry):
 FOOD_PAIRING: dict[str, dict] = {
     # Red Meat — fat tames tannin; body provides structure
     "red_meat": {
+        "is_sweet_pairing": False,
         "multipliers": {
             "tannin": 1.5,   # Fat from steak/lamb cuts through grippy tannins
             "body":   1.2,   # Full body matches the richness of the protein
@@ -36,6 +37,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # White Meat — light to medium; acidity lifts delicate flavours
     "poultry": {
+        "is_sweet_pairing": False,
         "multipliers": {
             "tannin": 0.7,   # Moderate grip only — chicken can't hold heavy tannin
         },
@@ -46,6 +48,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # Seafood: White Fish / Shellfish — tannin destroys delicate fish oils
     "white_fish": {
+        "is_sweet_pairing": False,
         "multipliers": {
             "tannin": 0.0,   # Tannin-Free Zone — metallic clash with fish oils
         },
@@ -56,6 +59,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # Seafood: Salmon / Tuna — richer flesh; can handle a whisper of texture
     "rich_fish": {
+        "is_sweet_pairing": False,
         "multipliers": {
             "tannin": 0.5,   # Small amount of grip OK — rosé/light red territory
         },
@@ -64,8 +68,10 @@ FOOD_PAIRING: dict[str, dict] = {
         },
     },
 
-    # Spicy Food — alcohol & tannin amplify heat; aromatics cool it
+    # Spicy Food — off-dry wines (Riesling, Gewürztraminer) cool the heat best.
+    # is_sweet_pairing=True triggers the Palate Paradox check for dry-preferring users.
     "spicy_food": {
+        "is_sweet_pairing": True,
         "multipliers": {
             "tannin": 0.0,   # Tannin + capsaicin = burning finish — suppress entirely
             "body":   0.5,   # High alcohol fans the flames — dampen body
@@ -77,6 +83,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # Tomato-based Pasta / Pizza — tomato acid demands a wine that matches it
     "tomato_sauce": {
+        "is_sweet_pairing": False,
         "multipliers": {},
         "boosts": {
             "acidity": 1.5,  # High acidity matches the tomato's natural tartness
@@ -85,6 +92,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # Creamy / Cheesy Pasta — dairy richness needs body and a touch of acid to cut through
     "creamy_sauce": {
+        "is_sweet_pairing": False,
         "multipliers": {
             "tannin": 0.5,   # Grippy tannin clashes with cream — soften it
         },
@@ -96,6 +104,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # Salads / Green Veggies — crisp, herbaceous; light is right
     "greens": {
+        "is_sweet_pairing": False,
         "multipliers": {
             "body":   0.7,   # Heavy reds overwhelm delicate greens
             "tannin": 0.5,   # Grippy tannin clashes with bitter vegetables
@@ -108,6 +117,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # Cheese & Charcuterie — the all-rounder; acid cuts through salt and fat
     "charcuterie": {
+        "is_sweet_pairing": False,
         "multipliers": {},
         "boosts": {
             "acidity": 0.5,  # Crispness cuts through cured-meat fat and salt
@@ -117,6 +127,7 @@ FOOD_PAIRING: dict[str, dict] = {
 
     # No food — palate dial stays exactly where the user set it
     "none": {
+        "is_sweet_pairing": False,
         "multipliers": {},
         "boosts": {},
     },
