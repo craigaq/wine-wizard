@@ -6,7 +6,10 @@ class Merchant {
   final int tier;
   final String tierLabel;
   final double distanceKm;
-  final double priceUsd;
+  final double priceLocal;
+  final String currencyCode;
+  final String currencySymbol;
+  final String websiteUrl;
   final double score;
   final double confidenceScore;
   final bool needsVerification;
@@ -19,7 +22,10 @@ class Merchant {
     required this.tier,
     required this.tierLabel,
     required this.distanceKm,
-    required this.priceUsd,
+    required this.priceLocal,
+    required this.currencyCode,
+    required this.currencySymbol,
+    required this.websiteUrl,
     required this.score,
     required this.confidenceScore,
     required this.needsVerification,
@@ -34,7 +40,10 @@ class Merchant {
       tier:             (json['tier']            as int?)    ?? 0,
       tierLabel:        (json['tier_label']      as String?) ?? '',
       distanceKm:       (json['distance_km']     as num).toDouble(),
-      priceUsd:         (json['price_usd']       as num).toDouble(),
+      priceLocal:       (json['price_local']     as num).toDouble(),
+      currencyCode:     (json['currency_code']   as String?) ?? 'AUD',
+      currencySymbol:   (json['currency_symbol'] as String?) ?? 'A\$',
+      websiteUrl:       (json['website_url']     as String?) ?? '',
       score:            (json['score']           as num).toDouble(),
       confidenceScore:  (json['confidence_score'] as num).toDouble(),
       needsVerification: json['needs_verification'] as bool,

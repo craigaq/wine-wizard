@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/merchant.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
+
+Future<void> _openUrl(String url) async {
+  final uri = Uri.parse(url);
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    debugPrint('Could not launch $url');
+  }
+}
 
 // Tier colour palette — matches the React badge colours
 const _tierColors = {
@@ -21,12 +29,14 @@ class NearbyScreen extends StatefulWidget {
   final String wineName;
   final double budgetMin;
   final double budgetMax;
+  final String currencyCode;
 
   const NearbyScreen({
     super.key,
     required this.wineName,
     required this.budgetMin,
     required this.budgetMax,
+    this.currencyCode = 'AUD',
   });
 
   @override
@@ -59,6 +69,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
         budgetMin:      widget.budgetMin,
         budgetMax:      widget.budgetMax,
         showGlobalTier: _showGlobalTier,
+        currencyCode:   widget.currencyCode,
       );
       setState(() {
         _response = response;
@@ -298,7 +309,7 @@ class _WineComparisonCard extends StatelessWidget {
                   // Price
                   const SizedBox(height: 10),
                   Text(
-                    '\$${best.priceUsd.toStringAsFixed(2)}',
+                    '${best.currencySymbol}${best.priceLocal.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -413,26 +424,53 @@ class _WineComparisonCard extends StatelessWidget {
               ),
             ),
 
-            // ── Select this Bottle button ────────────────────────────────
+            // ── Action buttons ───────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => _showMerchantSheet(context, tier, color),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E293B),  // slate-800
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              child: Column(
+                children: [
+                  // Primary: deep-link to retailer's search page for this wine
+                  if (best.websiteUrl.isNotEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _openUrl(best.websiteUrl),
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: Text(
+                          'Shop ${best.name.split(' ').first} Online',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: color,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (best.websiteUrl.isNotEmpty) const SizedBox(height: 8),
+                  // Secondary: show all stockists for this tier
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => _showMerchantSheet(context, tier, color),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'See All Stockists',
+                        style: TextStyle(fontSize: 14),
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    'Select this Bottle',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                ),
+                ],
               ),
             ),
           ],
@@ -630,12 +668,33 @@ class _MerchantRow extends StatelessWidget {
                   merchant.address,
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
+                if (merchant.websiteUrl.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => _openUrl(merchant.websiteUrl),
+                    child: Row(
+                      children: [
+                        Icon(Icons.open_in_new,
+                            size: 12, color: Colors.blue.shade600),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Shop online',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(width: 8),
           Text(
-            '\$${merchant.priceUsd.toStringAsFixed(2)}',
+            '${merchant.currencySymbol}${merchant.priceLocal.toStringAsFixed(2)}',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,

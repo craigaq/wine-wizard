@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/wine_recommendation.dart';
 import '../screens/nearby_screen.dart';
 import '../services/api_service.dart';
+import '../services/currency_service.dart';
 import '../widgets/conflict_alert.dart';
 import '../widgets/magic_palette_step.dart';
 import '../widgets/palate_dial.dart';
@@ -31,7 +32,8 @@ class _QuizScreenState extends State<QuizScreen> {
   int _texture = 3;
   int _flavor = 3;
   String _foodPairing = 'none'; // stores the backend ID
-  String _budgetLabel = '\$16 – \$25';
+  int _budgetIndex = 1;         // index into CurrencyService.getBrackets()
+  String _currencyCode = CurrencyService.detectCode();
   bool _prefDry = false;
   String _overrideMode = 'use_pairing_logic';
 
@@ -106,13 +108,6 @@ class _QuizScreenState extends State<QuizScreen> {
       'comment': "Just a glass and some good vibes? Perfection. Let's find a wine that's a star all on its own.",
     },
   ];
-  static const List<Map<String, Object>> _budgetOptions = [
-    {'label': '\$5 – \$15',   'min': 5.0,   'max': 15.0},
-    {'label': '\$16 – \$25',  'min': 16.0,  'max': 25.0},
-    {'label': '\$26 – \$50',  'min': 26.0,  'max': 50.0},
-    {'label': '\$51 – \$100', 'min': 51.0,  'max': 100.0},
-    {'label': '\$101+',       'min': 101.0, 'max': 9999.0},
-  ];
 
   static const List<String> _attrOrder = [
     'Crispness (Acidity)',
@@ -121,8 +116,8 @@ class _QuizScreenState extends State<QuizScreen> {
     'Flavor Intensity (Aromatics)',
   ];
 
-  Map<String, Object> get _selectedBudget =>
-      _budgetOptions.firstWhere((b) => b['label'] == _budgetLabel);
+  BudgetBracket get _selectedBracket =>
+      CurrencyService.getBrackets(_currencyCode)[_budgetIndex];
 
   String get _foodLabel =>
       _foodOptions.firstWhere((f) => f['id'] == _foodPairing)['label'] ?? _foodPairing;
@@ -205,7 +200,7 @@ class _QuizScreenState extends State<QuizScreen> {
       _texture = 3;
       _flavor = 3;
       _foodPairing = 'none';
-      _budgetLabel = '\$16 – \$25';
+      _budgetIndex = 1;
       _prefDry = false;
       _overrideMode = 'use_pairing_logic';
       _results = null;
@@ -565,11 +560,13 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
           const SizedBox(height: 32),
           Column(
-            children: _budgetOptions.map((option) {
-              final label = option['label'] as String;
-              final selected = _budgetLabel == label;
+            children: CurrencyService.getBrackets(_currencyCode).asMap().entries.map((entry) {
+              final index = entry.key;
+              final bracket = entry.value;
+              final label = bracket.label;
+              final selected = _budgetIndex == index;
               return GestureDetector(
-                onTap: () => setState(() => _budgetLabel = label),
+                onTap: () => setState(() => _budgetIndex = index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.only(bottom: 12),
@@ -733,7 +730,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     children: [
                       const Text('Budget (per bottle)',
                           style: TextStyle(fontWeight: FontWeight.w500)),
-                      Text(_budgetLabel,
+                      Text(_selectedBracket.label,
                           style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w600)),
@@ -812,8 +809,9 @@ class _QuizScreenState extends State<QuizScreen> {
               wine: wine,
               userPrefs: _userPrefs,
               attrOrder: _attrOrder,
-              budgetMin: _selectedBudget['min'] as double,
-              budgetMax: _selectedBudget['max'] as double,
+              budgetMin: _selectedBracket.min,
+              budgetMax: _selectedBracket.max,
+              currencyCode: _currencyCode,
             );
           }),
         ],
@@ -840,6 +838,7 @@ class _WineResultCard extends StatefulWidget {
   final List<String> attrOrder;
   final double budgetMin;
   final double budgetMax;
+  final String currencyCode;
 
   const _WineResultCard({
     required this.rank,
@@ -848,6 +847,7 @@ class _WineResultCard extends StatefulWidget {
     required this.attrOrder,
     required this.budgetMin,
     required this.budgetMax,
+    this.currencyCode = 'AUD',
   });
 
   @override
@@ -987,6 +987,7 @@ class _WineResultCardState extends State<_WineResultCard> {
                           wineName: widget.wine.name,
                           budgetMin: widget.budgetMin,
                           budgetMax: widget.budgetMax,
+                          currencyCode: widget.currencyCode,
                         ),
                       ),
                     ),

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 import dataclasses
+import urllib.parse
 
 from recommendation_service import (
     RecommendationService, WineProfile, UserPreferences,
@@ -23,6 +24,7 @@ from wine_catalog import WINE_DATABASE
 from term_mapping import TECHNICAL_TO_UI
 from interceptor import run_recommendation_middleware, run_merchant_middleware, TieredMerchantResults
 from local_sourcing import TIER_LABELS, TIER_REGION_HINTS
+from currency import convert_from_aud, convert_to_aud, lat_lng_to_currency, get_info as get_currency_info
 
 app = FastAPI(title="Wine Wizard API")
 
@@ -88,6 +90,15 @@ class NearbyRequest(BaseModel):
             "even when it costs more than 5× the cheapest Tier 1 option."
         ),
     )
+    currency_code: str = Field(
+        "AUD",
+        description=(
+            "ISO 4217 currency code for the user's locale (e.g. 'AUD', 'USD'). "
+            "budget_min/max must be expressed in this currency. "
+            "Prices in the response are converted to this currency. "
+            "When omitted, the server infers currency from the user's GPS coordinates."
+        ),
+    )
 
 
 class MerchantResponse(BaseModel):
@@ -98,7 +109,10 @@ class MerchantResponse(BaseModel):
     tier: int           # 1 | 2 | 3
     tier_label: str     # "The Local Hero" | "The National Rival" | "The Global Icon"
     distance_km: float
-    price_usd: float
+    price_local: float  # price in the user's requested currency
+    currency_code: str  # ISO 4217 (e.g. "AUD")
+    currency_symbol: str  # display symbol (e.g. "A$")
+    website_url: str    # deep-link to retailer's search page for this wine brand
     score: float
     confidence_score: float
     needs_verification: bool
@@ -282,8 +296,12 @@ def recommend(req: RecommendRequest):
     )
 
 
-def _merchant_response(r) -> MerchantResponse:
-    """Build a MerchantResponse from a MerchantResult."""
+def _merchant_response(r, currency_code: str) -> MerchantResponse:
+    """Build a MerchantResponse from a MerchantResult, with price converted to currency_code."""
+    info = get_currency_info(currency_code)
+    # Build deep-link search URL by substituting the brand name into the template.
+    template = r.merchant.search_url_template
+    website_url = template.replace("{brand}", urllib.parse.quote(r.brand)) if template else ""
     return MerchantResponse(
         name=r.merchant.name,
         address=r.merchant.address,
@@ -292,7 +310,10 @@ def _merchant_response(r) -> MerchantResponse:
         tier=r.tier,
         tier_label=TIER_LABELS.get(r.tier, "Unknown"),
         distance_km=r.distance_km,
-        price_usd=r.merchant.price_usd,
+        price_local=convert_from_aud(r.merchant.price_aud, currency_code),
+        currency_code=info.code,
+        currency_symbol=info.symbol,
+        website_url=website_url,
         score=r.score,
         confidence_score=r.confidence_score,
         needs_verification=r.needs_verification,
@@ -301,21 +322,29 @@ def _merchant_response(r) -> MerchantResponse:
 
 @app.post("/nearby", response_model=NearbyResponse)
 def nearby(req: NearbyRequest):
+    # Resolve currency: use client-supplied code, fall back to GPS-derived.
+    currency_code = req.currency_code.upper() if req.currency_code else \
+        lat_lng_to_currency(req.user_lat, req.user_lng)
+
+    # Convert budget from the user's local currency to AUD for catalog filtering.
+    budget_min_aud = convert_to_aud(req.budget_min, currency_code)
+    budget_max_aud = convert_to_aud(req.budget_max, currency_code) if req.budget_max < 9999.0 else 9999.0
+
     tiered: TieredMerchantResults = run_merchant_middleware(
         wine_name=req.wine_name,
         user_lat=req.user_lat,
         user_lng=req.user_lng,
-        budget_min=req.budget_min,
-        budget_max=req.budget_max,
+        budget_min=budget_min_aud,
+        budget_max=budget_max_aud,
         show_global_tier=req.show_global_tier,
     )
 
-    flat = [_merchant_response(r) for r in tiered.all_results]
+    flat = [_merchant_response(r, currency_code) for r in tiered.all_results]
 
     tier_responses = []
     for t in (1, 2, 3):
         bucket    = tiered.tiers.get(t, [])
-        matches   = [_merchant_response(r) for r in bucket]
+        matches   = [_merchant_response(r, currency_code) for r in bucket]
         suppressed = (t == 3 and tiered.tier_3_suppressed)
         blurb_obj  = tiered.blurbs.get(t)
         tier_responses.append(TierResponse(

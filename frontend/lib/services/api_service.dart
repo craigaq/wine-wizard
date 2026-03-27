@@ -102,6 +102,7 @@ class ApiService {
     required double budgetMin,
     required double budgetMax,
     bool showGlobalTier = false,
+    String currencyCode = 'AUD',
   }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/nearby'),
@@ -113,6 +114,7 @@ class ApiService {
         'budget_min':       budgetMin,
         'budget_max':       budgetMax,
         'show_global_tier': showGlobalTier,
+        'currency_code':    currencyCode,
       }),
     );
     if (response.statusCode == 200) {
