@@ -25,35 +25,35 @@ class _Card {
 }
 
 const _crispness = [
-  _Card('😴', 'Dead Flat', 'Barely a whisper of freshness — calm and still'),
-  _Card('🌿', 'Mellow Fresh', 'A soft, gentle tingle on the tongue'),
-  _Card('🍋', 'Citrus Bright', 'Lively and refreshing, like squeezing a lemon'),
-  _Card('⚡', 'Electric Zing!', 'Zippy and mouth-watering — it crackles!'),
-  _Card('🌩️', 'Lightning Bolt!', 'Eye-wateringly sharp — buckle up'),
+  _Card('🧈', 'Dead Flat', 'Buttery and round. Zero freshness, all richness'),
+  _Card('🍐', 'Mellow Fresh', 'Soft pear-drop gentleness on the tongue'),
+  _Card('🥂', 'Citrus Bright', 'Balanced and celebratory. The sweet spot'),
+  _Card('🍋', 'Electric Zing!', 'Lemon-sharp and mouth-watering. It crackles!'),
+  _Card('🍋‍🟩', 'Lightning Bolt!', 'Razor-sharp lime. Eye-wateringly crisp'),
 ];
 
 const _weight = [
-  _Card('🕊️', 'Feather Light', 'Barely there — delicate as air'),
-  _Card('☁️', 'Cloud Soft', 'Floaty, easy-drinking and graceful'),
-  _Card('🌊', 'Flowing Wave', 'Balanced and nicely present'),
-  _Card('🐻', 'Full & Huggable', 'Rich, warming and satisfying'),
-  _Card('🪨', 'Mighty Boulder!', 'A true heavyweight — big and bold'),
+  _Card('🕯️', 'Feather Light', 'Delicate as a taper flame. Barely there on the palate'),
+  _Card('☁️', 'Cloud Soft', 'Graceful and floaty. Easy-drinking and gentle'),
+  _Card('🌊', 'Flowing Wave', 'Balanced and present. The classic medium-bodied sweet spot'),
+  _Card('🧥', 'Full & Huggable', 'Rich and substantial. Warming and deeply satisfying'),
+  _Card('💪', 'Mighty Boulder!', 'A true heavyweight. Big, bold and built to last'),
 ];
 
 const _texture = [
-  _Card('🧈', 'Pure Silk', 'Buttery smooth — absolutely zero grip'),
-  _Card('🧸', 'Velvet Hug', 'Cosy, gentle — like a soft blanket'),
-  _Card('🌿', 'Light Grip', 'Pleasantly present — easy to enjoy'),
-  _Card('🌰', 'Firm Grip', 'Noticeably grippy — chewy and dry'),
-  _Card('🌵', 'Desert Dry!', 'Maximum dryness — the Sahara in a glass'),
+  _Card('🥚', 'Pure Silk', 'Egg-white smooth. The winemaker\'s trick for ultra-soft tannins'),
+  _Card('🍦', 'Velvet Hug', 'Creamy and gentle. Like soft-serve on the palate'),
+  _Card('🍫', 'Light Grip', 'Dark chocolate. Pleasant, present, easy to enjoy'),
+  _Card('🌰', 'Firm Grip', 'Chestnut dry. Noticeably grippy and chewy'),
+  _Card('🫖', 'Desert Dry!', 'Over-steeped tea. The sommelier\'s descriptor for maximum tannin'),
 ];
 
 const _flavor = [
-  _Card('🤫', 'Whisper Quiet', 'Barely there — a ghost of flavour'),
-  _Card('🌱', 'Gently Speaks', 'Soft, understated, quietly charming'),
-  _Card('🌺', 'In Full Bloom', 'Expressive and pleasant — lovely'),
-  _Card('🌟', 'Star Power!', 'Vibrant and exciting — the spotlight is yours'),
-  _Card('💥', 'Flavour Bomb!', 'Completely off the charts — hold on tight'),
+  _Card('💧', 'Whisper Quiet', 'Barely there. A neutral, almost water-like presence'),
+  _Card('🌿', 'Gently Speaks', 'Subtle herb and mineral. Quietly charming'),
+  _Card('🌹', 'In Full Bloom', 'Expressive and aromatic. Beautiful and complex'),
+  _Card('🍒', 'Star Power!', 'Vibrant and fruity. Bold, exciting, the spotlight is yours'),
+  _Card('🌶️', 'Flavour Bomb!', 'Intense and powerful. Spice, concentration, off the charts'),
 ];
 
 List<_Card> _cardsFor(String title) {

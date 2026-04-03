@@ -32,8 +32,8 @@ class _QuizScreenState extends State<QuizScreen> {
   int _texture = 3;
   int _flavor = 3;
   String _foodPairing = 'none'; // stores the backend ID
-  int _budgetIndex = 1;         // index into CurrencyService.getBrackets()
-  String _currencyCode = CurrencyService.detectCode();
+  int _budgetIndex = 1; // index into CurrencyService.getBrackets()
+  String _currencyCode = 'AUD'; // resolved from GPS in initState
   bool _prefDry = false;
   String _overrideMode = 'use_pairing_logic';
 
@@ -44,68 +44,79 @@ class _QuizScreenState extends State<QuizScreen> {
   ConflictAlert? _conflictAlert;
 
   static const int _totalPages = 10;
+
   /// Each entry: label = UI text, id = backend key, emoji = grid icon,
   /// comment = Wizard's in-step commentary shown when the item is selected.
   static const List<Map<String, String>> _foodOptions = [
     {
-      'label':   'Steak, Lamb, or Burgers',
-      'id':      'red_meat',
-      'emoji':   '🥩',
-      'comment': "Steak nights are the best! We'll hunt for a wine with enough 'grip' (Tannin) to handle all that richness.",
+      'label': 'Steak, Lamb, or Burgers',
+      'id': 'red_meat',
+      'emoji': '🥩',
+      'comment':
+          "Steak nights are the best! We'll hunt for a wine with enough 'grip' (Tannin) to handle all that richness.",
     },
     {
-      'label':   'Chicken, Turkey, or Pork',
-      'id':      'poultry',
-      'emoji':   '🍗',
-      'comment': "Chicken or pork? A versatile choice! Let's find a wine that's supportive but still brings its own personality to the party.",
+      'label': 'Chicken, Turkey, or Pork',
+      'id': 'poultry',
+      'emoji': '🍗',
+      'comment':
+          "Chicken or pork? A versatile choice! Let's find a wine that's supportive but still brings its own personality to the party.",
     },
     {
-      'label':   'White Fish or Shellfish',
-      'id':      'white_fish',
-      'emoji':   '🐟',
-      'comment': "Delicate flavors! We'll keep things light and 'crisp' (Acidity) so the wine doesn't drown out the fish.",
+      'label': 'White Fish or Shellfish',
+      'id': 'white_fish',
+      'emoji': '🐟',
+      'comment':
+          "Delicate flavors! We'll keep things light and 'crisp' (Acidity) so the wine doesn't drown out the fish.",
     },
     {
-      'label':   'Salmon or Tuna',
-      'id':      'rich_fish',
-      'emoji':   '🍣',
-      'comment': "Salmon has some weight to it! We need a wine with enough 'zing' (Acidity) to cut through the richness.",
+      'label': 'Salmon or Tuna',
+      'id': 'rich_fish',
+      'emoji': '🍣',
+      'comment':
+          "Salmon has some weight to it! We need a wine with enough 'zing' (Acidity) to cut through the richness.",
     },
     {
-      'label':   'Spicy Curry or Tacos',
-      'id':      'spicy_food',
-      'emoji':   '🌶️',
-      'comment': "Ooh, a spicy one! We'll look for something 'fruity' (Aromatics) to act like a fire extinguisher for your tongue.",
+      'label': 'Spicy Curry or Tacos',
+      'id': 'spicy_food',
+      'emoji': '🌶️',
+      'comment':
+          "Ooh, a spicy one! We'll look for something 'fruity' (Aromatics) to act like a fire extinguisher for your tongue.",
     },
     {
-      'label':   'Tomato Pasta or Pizza',
-      'id':      'tomato_sauce',
-      'emoji':   '🍕',
-      'comment': "Zesty tomato sauce! We need a wine with enough 'punch' (Acidity) to keep up with that tangy energy.",
+      'label': 'Tomato Pasta or Pizza',
+      'id': 'tomato_sauce',
+      'emoji': '🍕',
+      'comment':
+          "Zesty tomato sauce! We need a wine with enough 'punch' (Acidity) to keep up with that tangy energy.",
     },
     {
-      'label':   'Creamy or Cheesy Pasta',
-      'id':      'creamy_sauce',
-      'emoji':   '🧀',
-      'comment': "Rich and buttery? We'll find a 'heavyweight' (Full-bodied) wine that feels just as luxurious as the sauce.",
+      'label': 'Creamy or Cheesy Pasta',
+      'id': 'creamy_sauce',
+      'emoji': '🧀',
+      'comment':
+          "Rich and buttery? We'll find a 'heavyweight' (Full-bodied) wine that feels just as luxurious as the sauce.",
     },
     {
-      'label':   'Salads or Green Veggies',
-      'id':      'greens',
-      'emoji':   '🥗',
-      'comment': "Fresh and light! Let's pick a 'crisp' (Acidity) wine that tastes like a summer garden in a glass.",
+      'label': 'Salads or Green Veggies',
+      'id': 'greens',
+      'emoji': '🥗',
+      'comment':
+          "Fresh and light! Let's pick a 'crisp' (Acidity) wine that tastes like a summer garden in a glass.",
     },
     {
-      'label':   'Cheese & Charcuterie',
-      'id':      'charcuterie',
-      'emoji':   '🍖',
-      'comment': "The ultimate snack pack! We'll find a crowd-pleaser that can handle everything from creamy brie to salty salami.",
+      'label': 'Cheese & Charcuterie',
+      'id': 'charcuterie',
+      'emoji': '🍖',
+      'comment':
+          "The ultimate snack pack! We'll find a crowd-pleaser that can handle everything from creamy brie to salty salami.",
     },
     {
-      'label':   'Just sipping (No food)',
-      'id':      'none',
-      'emoji':   '🍷',
-      'comment': "Just a glass and some good vibes? Perfection. Let's find a wine that's a star all on its own.",
+      'label': 'Just sipping (No food)',
+      'id': 'none',
+      'emoji': '🍷',
+      'comment':
+          "Just a glass and some good vibes? Perfection. Let's find a wine that's a star all on its own.",
     },
   ];
 
@@ -120,17 +131,20 @@ class _QuizScreenState extends State<QuizScreen> {
       CurrencyService.getBrackets(_currencyCode)[_budgetIndex];
 
   String get _foodLabel =>
-      _foodOptions.firstWhere((f) => f['id'] == _foodPairing)['label'] ?? _foodPairing;
+      _foodOptions.firstWhere((f) => f['id'] == _foodPairing)['label'] ??
+      _foodPairing;
 
-  String? get _foodComment =>
-      _foodOptions.firstWhere((f) => f['id'] == _foodPairing, orElse: () => {})['comment'];
+  String? get _foodComment => _foodOptions.firstWhere(
+    (f) => f['id'] == _foodPairing,
+    orElse: () => {},
+  )['comment'];
 
   Map<String, int> get _userPrefs => {
-        'Crispness (Acidity)':        _crispness,
-        'Weight (Body)':              _weight,
-        'Texture (Tannin)':           _texture,
-        'Flavor Intensity (Aromatics)': _flavor,
-      };
+    'Crispness (Acidity)': _crispness,
+    'Weight (Body)': _weight,
+    'Texture (Tannin)': _texture,
+    'Flavor Intensity (Aromatics)': _flavor,
+  };
 
   bool get _hasConflict => _weight <= 2 && _texture >= 4;
 
@@ -169,7 +183,11 @@ class _QuizScreenState extends State<QuizScreen> {
       );
       if (!mounted) return;
       if (result.gastroClash != null) {
-        await showGastroClashAlert(context, result.gastroClash!, _applyGastroAdjustment);
+        await showGastroClashAlert(
+          context,
+          result.gastroClash!,
+          _applyGastroAdjustment,
+        );
       }
       if (!mounted) return;
       if (result.palateParadox != null) {
@@ -239,7 +257,11 @@ class _QuizScreenState extends State<QuizScreen> {
       });
       // Palate conflict alert (shown after results load)
       if (result.alert != null && mounted) {
-        await showWizardConflictAlert(context, result.alert!, _applyConflictAdjustment);
+        await showWizardConflictAlert(
+          context,
+          result.alert!,
+          _applyConflictAdjustment,
+        );
       }
     } catch (e) {
       setState(() {
@@ -289,6 +311,14 @@ class _QuizScreenState extends State<QuizScreen> {
   // ---------------------------------------------------------------------------
 
   @override
+  void initState() {
+    super.initState();
+    CurrencyService.detectCodeFromGps().then((code) {
+      if (mounted) setState(() => _currencyCode = code);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = widget.themeMode == ThemeMode.dark;
     return Scaffold(
@@ -318,25 +348,29 @@ class _QuizScreenState extends State<QuizScreen> {
           _buildWelcome(),
           _buildAttributeStep(
             title: 'Crispness (Acidity)',
-            description: 'How much do you enjoy a fresh, zesty bite in your wine?',
+            description:
+                'How much do you enjoy a fresh, zesty bite in your wine?',
             value: _crispness,
             onChanged: (v) => setState(() => _crispness = v),
           ),
           _buildAttributeStep(
             title: 'Weight (Body)',
-            description: 'Do you prefer a light, delicate sip or a rich, full-bodied experience?',
+            description:
+                'Do you prefer a light, delicate sip or a rich, full-bodied experience?',
             value: _weight,
             onChanged: (v) => setState(() => _weight = v),
           ),
           _buildAttributeStep(
             title: 'Texture (Tannin)',
-            description: 'How do you feel about that dry, grippy sensation common in red wines?',
+            description:
+                'How do you feel about that dry, grippy sensation common in red wines?',
             value: _texture,
             onChanged: (v) => setState(() => _texture = v),
           ),
           _buildAttributeStep(
             title: 'Flavor Intensity (Aromatics)',
-            description: 'Do you prefer subtle, understated flavors or bold, expressive ones?',
+            description:
+                'Do you prefer subtle, understated flavors or bold, expressive ones?',
             value: _flavor,
             onChanged: (v) => setState(() => _flavor = v),
           ),
@@ -405,9 +439,9 @@ class _QuizScreenState extends State<QuizScreen> {
           const SizedBox(height: 24),
           Text(
             'Welcome to Wine Wizard',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -452,9 +486,9 @@ class _QuizScreenState extends State<QuizScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildFoodPairingStep() {
-    // Split the last option ("Just sipping") out so it can span full width.
+    // "Just sipping" sits below the dry toggle; remaining options fill the grid.
+    final soloOption = _foodOptions.last;
     final gridOptions = _foodOptions.sublist(0, _foodOptions.length - 1);
-    final soloOption  = _foodOptions.last;
 
     return _stepShell(
       child: Column(
@@ -462,9 +496,9 @@ class _QuizScreenState extends State<QuizScreen> {
         children: [
           Text(
             'Food Pairing',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -479,7 +513,9 @@ class _QuizScreenState extends State<QuizScreen> {
               dense: true,
               secondary: const Text('🍷', style: TextStyle(fontSize: 20)),
               title: const Text('I prefer dry wines'),
-              subtitle: const Text('The Wizard will flag sweet-pairing conflicts'),
+              subtitle: const Text(
+                'The Wizard will flag sweet-pairing conflicts',
+              ),
               value: _prefDry,
               onChanged: (v) => setState(() {
                 _prefDry = v;
@@ -488,7 +524,17 @@ class _QuizScreenState extends State<QuizScreen> {
               }),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+
+          // "Just sipping" sits directly below the dry-wine toggle
+          _FoodCard(
+            option: soloOption,
+            selected: _foodPairing == soloOption['id'],
+            onTap: () => setState(() => _foodPairing = soloOption['id']!),
+            fullWidth: true,
+          ),
+
+          const SizedBox(height: 20),
 
           // 2-column icon grid for food items
           GridView.builder(
@@ -501,22 +547,11 @@ class _QuizScreenState extends State<QuizScreen> {
               mainAxisSpacing: 12,
               childAspectRatio: 1.35,
             ),
-            itemBuilder: (context, i) =>
-                _FoodCard(
-                  option: gridOptions[i],
-                  selected: _foodPairing == gridOptions[i]['id'],
-                  onTap: () => setState(() => _foodPairing = gridOptions[i]['id']!),
-                ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // "Just sipping" spans the full width at the bottom
-          _FoodCard(
-            option: soloOption,
-            selected: _foodPairing == soloOption['id'],
-            onTap: () => setState(() => _foodPairing = soloOption['id']!),
-            fullWidth: true,
+            itemBuilder: (context, i) => _FoodCard(
+              option: gridOptions[i],
+              selected: _foodPairing == gridOptions[i]['id'],
+              onTap: () => setState(() => _foodPairing = gridOptions[i]['id']!),
+            ),
           ),
 
           const SizedBox(height: 16),
@@ -549,9 +584,9 @@ class _QuizScreenState extends State<QuizScreen> {
         children: [
           Text(
             'Your Budget (per bottle)',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -560,49 +595,60 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
           const SizedBox(height: 32),
           Column(
-            children: CurrencyService.getBrackets(_currencyCode).asMap().entries.map((entry) {
-              final index = entry.key;
-              final bracket = entry.value;
-              final label = bracket.label;
-              final selected = _budgetIndex == index;
-              return GestureDetector(
-                onTap: () => setState(() => _budgetIndex = index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: selected
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontWeight:
-                              selected ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 16,
+            children: CurrencyService.getBrackets(_currencyCode)
+                .asMap()
+                .entries
+                .map((entry) {
+                  final index = entry.key;
+                  final bracket = entry.value;
+                  final label = bracket.label;
+                  final selected = _budgetIndex == index;
+                  return GestureDetector(
+                    onTap: () => setState(() => _budgetIndex = index),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.transparent,
+                          width: 2,
                         ),
                       ),
-                      if (selected)
-                        Icon(Icons.check_circle,
-                            color: Theme.of(context).colorScheme.primary),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontWeight: selected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (selected)
+                            Icon(
+                              Icons.check_circle,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                })
+                .toList(),
           ),
         ],
       ),
@@ -620,9 +666,9 @@ class _QuizScreenState extends State<QuizScreen> {
         children: [
           Text(
             'Your Palate Dial',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -653,8 +699,10 @@ class _QuizScreenState extends State<QuizScreen> {
                   Flexible(
                     child: Text(
                       'Hmm. Light Weight with High Texture — the Wizard has thoughts. Tap Next.',
-                      style:
-                          TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ),
                 ],
@@ -683,9 +731,9 @@ class _QuizScreenState extends State<QuizScreen> {
         children: [
           Text(
             'Your Profile',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -704,9 +752,10 @@ class _QuizScreenState extends State<QuizScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(r.$1,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w500)),
+                          Text(
+                            r.$1,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
                           _ScoreDots(value: r.$2),
                         ],
                       ),
@@ -716,24 +765,34 @@ class _QuizScreenState extends State<QuizScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Food Pairing',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
-                      Text(_foodLabel,
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w600)),
+                      const Text(
+                        'Food Pairing',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        _foodLabel,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Budget (per bottle)',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
-                      Text(_selectedBracket.label,
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w600)),
+                      const Text(
+                        'Budget (per bottle)',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        _selectedBracket.label,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -769,8 +828,10 @@ class _QuizScreenState extends State<QuizScreen> {
           children: [
             const Text('😬', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 16),
-            Text('Something went wrong:',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Something went wrong:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             Text(_error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 24),
@@ -791,9 +852,9 @@ class _QuizScreenState extends State<QuizScreen> {
         children: [
           Text(
             'Your Recommendations',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
@@ -894,7 +955,9 @@ class _WineResultCardState extends State<_WineResultCard> {
                     child: Text(
                       '${widget.rank}',
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -908,18 +971,21 @@ class _WineResultCardState extends State<_WineResultCard> {
                               child: Text(
                                 widget.wine.name,
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                             if (widget.rank == 1)
-                              const Text('🍷',
-                                  style: TextStyle(fontSize: 18)),
+                              const Text('🍷', style: TextStyle(fontSize: 18)),
                           ],
                         ),
                         Text(
                           'Match: ${(widget.wine.score * 100).toStringAsFixed(1)}%',
                           style: TextStyle(
-                              fontSize: 13, color: Colors.grey.shade600),
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
                       ],
                     ),
@@ -940,24 +1006,31 @@ class _WineResultCardState extends State<_WineResultCard> {
                 Row(
                   children: [
                     const Expanded(child: SizedBox()),
-                    Text('You',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade500)),
+                    Text(
+                      'You',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Text('Wine',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: color)),
+                    Text(
+                      'Wine',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 ...widget.attrOrder.map((attr) {
                   final userVal = widget.userPrefs[attr] ?? 3;
-                  final wineVal =
-                      (widget.wine.wineProfile[attr] ?? 0).round().clamp(1, 5);
+                  final wineVal = (widget.wine.wineProfile[attr] ?? 0)
+                      .round()
+                      .clamp(1, 5);
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
                     child: Row(
@@ -995,7 +1068,9 @@ class _WineResultCardState extends State<_WineResultCard> {
                     label: const Text('Find Nearby'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       textStyle: const TextStyle(fontSize: 13),
                     ),
                   ),
@@ -1110,7 +1185,9 @@ class _FoodCard extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -1129,7 +1206,9 @@ class _FoodCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       height: 1.3,
-                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ],

@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:geolocator/geolocator.dart';
 
 class CurrencyInfo {
   final String code;
@@ -110,9 +111,66 @@ class CurrencyService {
     ],
   };
 
+  // Bounding boxes: (latMin, latMax, lngMin, lngMax, countryCode)
+  static const _boxes = [
+    (-44.0, -10.0,  113.0,  154.0, 'AU'),
+    (-47.0, -34.0,  166.0,  178.0, 'NZ'),
+    ( 24.0,  49.0, -125.0,  -66.0, 'US'),
+    ( 42.0,  83.0, -141.0,  -52.0, 'CA'),
+    ( 49.0,  61.0,   -8.0,    2.0, 'GB'),
+    ( 51.0,  56.0,  -10.0,   -5.0, 'IE'),
+    ( 41.0,  51.0,   -5.0,   10.0, 'FR'),
+    ( 47.0,  55.0,    6.0,   15.0, 'DE'),
+    ( 36.0,  47.0,    6.0,   19.0, 'IT'),
+    ( 36.0,  44.0,   -9.0,    4.0, 'ES'),
+    ( 36.0,  42.0,   -9.0,   -6.0, 'PT'),
+    ( 46.0,  48.0,    6.0,   11.0, 'CH'),
+    ( 24.0,  46.0,  122.0,  146.0, 'JP'),
+    (  1.1,   1.5,  103.6,  104.0, 'SG'),
+    ( 22.0,  24.0,  113.8,  114.5, 'HK'),
+    ( 18.0,  53.5,   73.0,  135.0, 'CN'),
+    (-35.0, -22.0,   16.0,   33.0, 'ZA'),
+  ];
+
+  /// Detect currency from GPS coordinates using bounding-box lookup.
+  /// Falls back to "AUD" when no region matches.
+  static String detectCodeFromLatLng(double lat, double lng) {
+    for (final box in _boxes) {
+      if (lat >= box.$1 && lat <= box.$2 && lng >= box.$3 && lng <= box.$4) {
+        return _localeToCode[box.$5] ?? 'AUD';
+      }
+    }
+    return 'AUD';
+  }
+
+  /// Detect currency from the device's GPS location.
+  /// Falls back to locale-based detection if location is unavailable.
+  static Future<String> detectCodeFromGps() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return detectCodeFromLocale();
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return detectCodeFromLocale();
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
+      );
+      return detectCodeFromLatLng(pos.latitude, pos.longitude);
+    } catch (_) {
+      return detectCodeFromLocale();
+    }
+  }
+
   /// Detect currency code from the device locale (e.g. "en_AU" → "AUD").
   /// Falls back to "AUD" if the locale is unavailable or unrecognised.
-  static String detectCode() {
+  static String detectCodeFromLocale() {
     try {
       if (!kIsWeb) {
         final locale = Platform.localeName; // e.g. "en_AU" or "en_AU.UTF-8"
@@ -125,6 +183,9 @@ class CurrencyService {
     } catch (_) {}
     return 'AUD';
   }
+
+  /// Kept for backwards compatibility — now delegates to [detectCodeFromLocale].
+  static String detectCode() => detectCodeFromLocale();
 
   static CurrencyInfo getInfo(String code) =>
       _meta[code] ?? const CurrencyInfo('AUD', 'A\$', 'Australian Dollar');
