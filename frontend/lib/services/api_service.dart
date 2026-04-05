@@ -34,6 +34,7 @@ class ApiService {
     required String foodPairing,
     bool prefDry = false,
     String overrideMode = 'use_pairing_logic',
+    String pairingMode = 'congruent',
   }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/recommend'),
@@ -46,6 +47,7 @@ class ApiService {
         'food_pairing': foodPairing,
         'pref_dry': prefDry,
         'override_mode': overrideMode,
+        'pairing_mode': pairingMode,
       }),
     );
     if (response.statusCode == 200) {

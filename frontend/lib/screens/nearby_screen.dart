@@ -389,34 +389,31 @@ class _WineComparisonCard extends StatelessWidget {
                     ),
                   ],
 
-                  // "Call to Confirm" badge if needed
-                  if (best.needsVerification) ...[
+                  // Badge row: Partner, Online Only, Call to Confirm
+                  if (best.isPartner || best.isOnlineOnly || best.needsVerification) ...[
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
+                        if (best.isPartner)
+                          _SmallBadge(
+                            label: 'Partner',
+                            color: Colors.deepPurple.shade600,
+                            icon: Icons.verified,
+                          ),
+                        if (best.isOnlineOnly)
+                          _SmallBadge(
+                            label: 'Online Only',
+                            color: Colors.blueGrey.shade600,
+                            icon: Icons.local_shipping_outlined,
+                          ),
+                        if (best.needsVerification)
+                          _SmallBadge(
+                            label: 'Call to Confirm Stock',
                             color: Colors.orange.shade700,
-                            borderRadius: BorderRadius.circular(12),
+                            icon: Icons.phone,
                           ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.phone, size: 11, color: Colors.white),
-                              SizedBox(width: 4),
-                              Text(
-                                'Call to Confirm Stock',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -653,8 +650,24 @@ class _MerchantRow extends StatelessWidget {
                     ),
                     if (isBest)
                       _SmallBadge(label: 'Closest', color: color),
+                    if (merchant.isPartner) ...[
+                      const SizedBox(width: 4),
+                      _SmallBadge(
+                        label: 'Partner',
+                        color: Colors.deepPurple.shade600,
+                        icon: Icons.verified,
+                      ),
+                    ],
+                    if (merchant.isOnlineOnly) ...[
+                      const SizedBox(width: 4),
+                      _SmallBadge(
+                        label: 'Online',
+                        color: Colors.blueGrey.shade600,
+                        icon: Icons.local_shipping_outlined,
+                      ),
+                    ],
                     if (merchant.needsVerification) ...[
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       _SmallBadge(
                         label: 'Call First',
                         color: Colors.orange.shade700,

@@ -74,7 +74,8 @@ class WineProfile:
         if not self.varietal:
             self.varietal = self.name
         # Invert pH to a 1-5 crispness score: pH 2.8 → 5.0,  pH 4.0 → 1.0
-        self.acidity     = round(1.0 + (4.0 - self.acidity_ph) / 1.2 * 4.0, 2)
+        # Clamped to [1.0, 5.0] to guard against out-of-range pH values in catalog data.
+        self.acidity     = round(min(5.0, max(1.0, 1.0 + (4.0 - self.acidity_ph) / 1.2 * 4.0)), 2)
         self.tannin      = float(self.tannin_structure)
         # Map 1-10 intensity to 0.5-5.0 scoring range (halved)
         self.aromatics   = self.aromatic_intensity / 2.0
@@ -120,6 +121,7 @@ class UserPreferences:
     food_pairing: str = "none"
     pref_dry: bool = False
     override_mode: str = "use_pairing_logic"
+    pairing_mode: str = "congruent"   # "congruent" | "contrast"
 
 
 @dataclass
@@ -239,6 +241,10 @@ def resolve_pairing_conflict(prefs: UserPreferences) -> PalateParadox | None:
     """
     pairing_cfg = FOOD_PAIRING.get(prefs.food_pairing, FOOD_PAIRING["none"])
     if not prefs.pref_dry or not pairing_cfg.get("is_sweet_pairing", False):
+        return None
+    # Conflict is already resolved — user made an explicit override choice.
+    # Only surface the paradox UI when the mode is still the unresolved default.
+    if prefs.override_mode != "use_pairing_logic":
         return None
 
     return PalateParadox(
@@ -476,7 +482,9 @@ class RecommendationService:
             attr: _normalise(getattr(preferences, pref_field))
             for pref_field, attr in _PREF_FIELD_TO_ATTR.items()
         }
-        pairing_cfg = FOOD_PAIRING.get(preferences.food_pairing, FOOD_PAIRING["none"])
+        food_entry = FOOD_PAIRING.get(preferences.food_pairing, FOOD_PAIRING["none"])
+        mode = preferences.pairing_mode if preferences.pairing_mode in ("congruent", "contrast") else "congruent"
+        pairing_cfg = food_entry.get(mode, food_entry["congruent"])
         return pref_weights, pairing_cfg
 
     @staticmethod

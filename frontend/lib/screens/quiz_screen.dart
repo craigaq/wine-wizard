@@ -36,6 +36,7 @@ class _QuizScreenState extends State<QuizScreen> {
   String _currencyCode = 'AUD'; // resolved from GPS in initState
   bool _prefDry = false;
   String _overrideMode = 'use_pairing_logic';
+  String _pairingMode = 'congruent'; // 'congruent' | 'contrast'
 
   // --- Results state ---
   List<WineRecommendation>? _results;
@@ -54,6 +55,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🥩',
       'comment':
           "Steak nights are the best! We'll hunt for a wine with enough 'grip' (Tannin) to handle all that richness.",
+      'contrast_comment':
+          "Bold move — we'll find a bright, acid-driven wine to cut through the fat instead. Think Pinot Noir over Cabernet.",
     },
     {
       'label': 'Chicken, Turkey, or Pork',
@@ -61,6 +64,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🍗',
       'comment':
           "Chicken or pork? A versatile choice! Let's find a wine that's supportive but still brings its own personality to the party.",
+      'contrast_comment':
+          "Rather than mirroring the delicacy, we'll find a richer, more expressive wine to frame the dish. Viognier energy.",
     },
     {
       'label': 'White Fish or Shellfish',
@@ -68,6 +73,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🐟',
       'comment':
           "Delicate flavors! We'll keep things light and 'crisp' (Acidity) so the wine doesn't drown out the fish.",
+      'contrast_comment':
+          "We'll look for a more textured, expressive wine to frame the delicacy — think skin-contact or fuller whites. Tannin still off-limits.",
     },
     {
       'label': 'Salmon or Tuna',
@@ -75,6 +82,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🍣',
       'comment':
           "Salmon has some weight to it! We need a wine with enough 'zing' (Acidity) to cut through the richness.",
+      'contrast_comment':
+          "Instead of cutting through the richness, we'll match salmon's weight with a full-bodied wine. Richness meets richness.",
     },
     {
       'label': 'Spicy Curry or Tacos',
@@ -82,6 +91,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🌶️',
       'comment':
           "Ooh, a spicy one! We'll look for something 'fruity' (Aromatics) to act like a fire extinguisher for your tongue.",
+      'contrast_comment':
+          "Dangerous choice — we'll amplify the fire instead of fighting it. Maximum aromatics to match the dish's intensity.",
     },
     {
       'label': 'Tomato Pasta or Pizza',
@@ -89,6 +100,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🍕',
       'comment':
           "Zesty tomato sauce! We need a wine with enough 'punch' (Acidity) to keep up with that tangy energy.",
+      'contrast_comment':
+          "Instead of matching the tang, we'll find a smooth, round wine to soften it. The velvet glove to the tomato's fist.",
     },
     {
       'label': 'Creamy or Cheesy Pasta',
@@ -96,6 +109,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🧀',
       'comment':
           "Rich and buttery? We'll find a 'heavyweight' (Full-bodied) wine that feels just as luxurious as the sauce.",
+      'contrast_comment':
+          "Classic sommelier move — a razor-sharp, high-acid wine to cut straight through all that dairy fat. Chablis would approve.",
     },
     {
       'label': 'Salads or Green Veggies',
@@ -103,6 +118,8 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🥗',
       'comment':
           "Fresh and light! Let's pick a 'crisp' (Acidity) wine that tastes like a summer garden in a glass.",
+      'contrast_comment':
+          "Rather than mirroring the freshness, we'll find an earthy, more expressive wine to complement those green notes.",
     },
     {
       'label': 'Cheese & Charcuterie',
@@ -110,12 +127,16 @@ class _QuizScreenState extends State<QuizScreen> {
       'emoji': '🍖',
       'comment':
           "The ultimate snack pack! We'll find a crowd-pleaser that can handle everything from creamy brie to salty salami.",
+      'contrast_comment':
+          "We'll go lean and punchy — high acid to cut aggressively through all that fat and salt. A wine with something to say.",
     },
     {
       'label': 'Just sipping (No food)',
       'id': 'none',
       'emoji': '🍷',
       'comment':
+          "Just a glass and some good vibes? Perfection. Let's find a wine that's a star all on its own.",
+      'contrast_comment':
           "Just a glass and some good vibes? Perfection. Let's find a wine that's a star all on its own.",
     },
   ];
@@ -134,10 +155,16 @@ class _QuizScreenState extends State<QuizScreen> {
       _foodOptions.firstWhere((f) => f['id'] == _foodPairing)['label'] ??
       _foodPairing;
 
-  String? get _foodComment => _foodOptions.firstWhere(
-    (f) => f['id'] == _foodPairing,
-    orElse: () => {},
-  )['comment'];
+  String? get _foodComment {
+    final option = _foodOptions.firstWhere(
+      (f) => f['id'] == _foodPairing,
+      orElse: () => {},
+    );
+    if (option.isEmpty) return null;
+    return _pairingMode == 'contrast'
+        ? (option['contrast_comment'] ?? option['comment'])
+        : option['comment'];
+  }
 
   Map<String, int> get _userPrefs => {
     'Crispness (Acidity)': _crispness,
@@ -146,7 +173,10 @@ class _QuizScreenState extends State<QuizScreen> {
     'Flavor Intensity (Aromatics)': _flavor,
   };
 
-  bool get _hasConflict => _weight <= 2 && _texture >= 4;
+  bool get _hasConflict =>
+      (_weight <= 2 && _texture >= 4) ||       // Light body + high tannin
+      (_flavor <= 1 && _crispness >= 4) ||      // Near-zero flavour + razor acidity
+      (_texture >= 5 && _crispness >= 5);       // Maximum tannin + maximum acidity
 
   // ---------------------------------------------------------------------------
   // Navigation
@@ -221,6 +251,7 @@ class _QuizScreenState extends State<QuizScreen> {
       _budgetIndex = 1;
       _prefDry = false;
       _overrideMode = 'use_pairing_logic';
+      _pairingMode = 'congruent';
       _results = null;
       _loading = false;
       _error = null;
@@ -249,6 +280,7 @@ class _QuizScreenState extends State<QuizScreen> {
         foodPairing: _foodPairing,
         prefDry: _prefDry,
         overrideMode: _overrideMode,
+        pairingMode: _pairingMode,
       );
       setState(() {
         _results = result.recommendations;
@@ -530,7 +562,10 @@ class _QuizScreenState extends State<QuizScreen> {
           _FoodCard(
             option: soloOption,
             selected: _foodPairing == soloOption['id'],
-            onTap: () => setState(() => _foodPairing = soloOption['id']!),
+            onTap: () => setState(() {
+              _foodPairing = soloOption['id']!;
+              _pairingMode = 'congruent'; // reset when food becomes none
+            }),
             fullWidth: true,
           ),
 
@@ -556,6 +591,47 @@ class _QuizScreenState extends State<QuizScreen> {
 
           const SizedBox(height: 16),
 
+          // Pairing mode toggle — only shown when a food is selected
+          if (_foodPairing != 'none') ...[
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pairing Philosophy',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      segments: const [
+                        ButtonSegment(
+                          value: 'congruent',
+                          label: Text('Match the dish'),
+                          icon: Icon(Icons.link, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: 'contrast',
+                          label: Text('Balance the dish'),
+                          icon: Icon(Icons.balance, size: 16),
+                        ),
+                      ],
+                      selected: {_pairingMode},
+                      onSelectionChanged: (Set<String> selection) =>
+                          setState(() => _pairingMode = selection.first),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // Wizard commentary — fades in/out as the selection changes
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
@@ -563,7 +639,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 FadeTransition(opacity: animation, child: child),
             child: _foodComment != null
                 ? _WizardComment(
-                    key: ValueKey(_foodPairing),
+                    key: ValueKey('$_foodPairing:$_pairingMode'),
                     text: _foodComment!,
                   )
                 : const SizedBox.shrink(),

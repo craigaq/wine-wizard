@@ -267,6 +267,17 @@ _MIDDLE_GROUND: list[WineProfile] = [
         abv_percentage=12.5, residual_sugar_gl=3.0,
         location_tag="International",   # Loire Valley France (Vouvray Sec)
     ),
+
+    # Condrieu-style dry Viognier — intensely floral, apricot/peach, full body
+    # Very high aromatic intensity makes it an ideal spice-food companion despite
+    # being bone-dry.  Technically dry but the terpene load reads as fruit-forward.
+    WineProfile(
+        "Viognier (Dry)", sku_id="WW-VI01",
+        varietal="Viognier", style="Dry",
+        acidity_ph=3.40, body=3.5, tannin_structure=1, aromatic_intensity=9,
+        abv_percentage=13.5, residual_sugar_gl=2.0,
+        location_tag="International",   # Rhône Valley France (Condrieu) & Eden Valley SA
+    ),
 ]
 
 

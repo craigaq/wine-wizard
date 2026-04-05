@@ -28,6 +28,17 @@ from currency import convert_from_aud, convert_to_aud, lat_lng_to_currency, get_
 
 app = FastAPI(title="Wine Wizard API")
 
+
+@app.on_event("startup")
+async def startup_event():
+    """Warm the merchant validation cache on startup."""
+    from merchant_validator import validate_all_catalog
+    summary = await validate_all_catalog()
+    logging.getLogger("wine_wizard").info(
+        "[Startup] Merchant validation complete: %s", summary
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,6 +68,10 @@ class RecommendRequest(BaseModel):
     override_mode: str     = Field(
         "use_pairing_logic",
         description="Palate Paradox resolution: filter_by_profile | use_pairing_logic | find_compromise",
+    )
+    pairing_mode: str      = Field(
+        "congruent",
+        description="Pairing philosophy: congruent (match the dish) | contrast (balance the dish)",
     )
 
 
@@ -105,17 +120,20 @@ class MerchantResponse(BaseModel):
     name: str
     address: str
     brand: str
-    region: str         # wine production region (e.g., "Barossa Valley, SA")
-    tier: int           # 1 | 2 | 3
-    tier_label: str     # "The Local Hero" | "The National Rival" | "The Global Icon"
+    region: str           # wine production region (e.g., "Barossa Valley, SA")
+    tier: int             # 1 | 2 | 3
+    tier_label: str       # "The Local Hero" | "The National Rival" | "The Global Icon"
     distance_km: float
-    price_local: float  # price in the user's requested currency
-    currency_code: str  # ISO 4217 (e.g. "AUD")
+    price_local: float    # price in the user's requested currency
+    currency_code: str    # ISO 4217 (e.g. "AUD")
     currency_symbol: str  # display symbol (e.g. "A$")
-    website_url: str    # deep-link to retailer's search page for this wine brand
+    website_url: str      # deep-link to retailer's search page for this wine brand
     score: float
     confidence_score: float
     needs_verification: bool
+    is_partner: bool = False      # True when merchant belongs to preferred_partner group
+    is_online_only: bool = False  # True for delivery-only retailers
+    commercial_group: str = ""    # endeavour | coles_liquor | independent | online
 
 
 class TierResponse(BaseModel):
@@ -267,6 +285,7 @@ def recommend(req: RecommendRequest):
             food_pairing=req.food_pairing,
             pref_dry=req.pref_dry,
             override_mode=req.override_mode,
+            pairing_mode=req.pairing_mode,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -317,6 +336,9 @@ def _merchant_response(r, currency_code: str) -> MerchantResponse:
         score=r.score,
         confidence_score=r.confidence_score,
         needs_verification=r.needs_verification,
+        is_partner=r.is_partner,
+        is_online_only=r.merchant.is_online_only,
+        commercial_group=r.merchant.commercial_group,
     )
 
 

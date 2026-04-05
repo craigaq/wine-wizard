@@ -53,6 +53,8 @@ from local_sourcing import (
     _avg_market_price,
     calculate_merchant_rank,
     get_stock_certainty,
+    _apply_partner_boost,
+    PARTNER_CONFIG,
     TIER_LABELS,
     TIER_REGION_HINTS,
 )
@@ -276,6 +278,13 @@ def run_merchant_middleware(
         log.info("[Inventory Ghost] %-7s  %-35s  src=%-15s  age=%.1fh  conf=%.3f",
                  status, m.name, m.data_source,
                  m.last_updated_hours, candidate.confidence_score)
+
+    # --- Partner boost: subtract rank score for preferred_partner merchants ---
+    _apply_partner_boost(candidates)
+    if PARTNER_CONFIG.get("preferred_partner"):
+        log.info("[Partner] preferred_partner=%s  exclude_rival=%s",
+                 PARTNER_CONFIG["preferred_partner"],
+                 PARTNER_CONFIG.get("exclude_rival_group", True))
 
     candidates.sort(key=lambda c: c.score)
 

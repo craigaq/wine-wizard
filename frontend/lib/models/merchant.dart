@@ -13,6 +13,9 @@ class Merchant {
   final double score;
   final double confidenceScore;
   final bool needsVerification;
+  final bool isPartner;
+  final bool isOnlineOnly;
+  final String commercialGroup;
 
   Merchant({
     required this.name,
@@ -29,6 +32,9 @@ class Merchant {
     required this.score,
     required this.confidenceScore,
     required this.needsVerification,
+    this.isPartner = false,
+    this.isOnlineOnly = false,
+    this.commercialGroup = '',
   });
 
   factory Merchant.fromJson(Map<String, dynamic> json) {
@@ -47,6 +53,9 @@ class Merchant {
       score:            (json['score']           as num).toDouble(),
       confidenceScore:  (json['confidence_score'] as num).toDouble(),
       needsVerification: json['needs_verification'] as bool,
+      isPartner:         (json['is_partner']      as bool?) ?? false,
+      isOnlineOnly:      (json['is_online_only']  as bool?) ?? false,
+      commercialGroup:   (json['commercial_group'] as String?) ?? '',
     );
   }
 }
