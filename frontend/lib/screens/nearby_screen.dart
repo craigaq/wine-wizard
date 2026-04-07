@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/merchant.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
+import '../theme/app_theme.dart';
 
 Future<void> _openUrl(String url) async {
   final uri = Uri.parse(url);
@@ -12,11 +13,11 @@ Future<void> _openUrl(String url) async {
   }
 }
 
-// Tier colour palette — matches the React badge colours
+// Tier colour palette
 const _tierColors = {
-  1: Color(0xFF059669),   // emerald-600  — Local Hero
-  2: Color(0xFF2563EB),   // blue-600     — National Rival
-  3: Color(0xFF7C3AED),   // purple-700   — Global Icon
+  1: WwColors.tierLocal,
+  2: WwColors.tierNational,
+  3: WwColors.tierGlobal,
 };
 
 const _tierIcons = {
@@ -86,10 +87,15 @@ class _NearbyScreenState extends State<NearbyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),   // slate-50
+      backgroundColor: WwColors.bgDeep,
       appBar: AppBar(
-        title: Text('Where to find ${widget.wineName}'),
+        title: Text(
+          widget.wineName,
+          style: WwText.headlineMedium(),
+        ),
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: _buildBody(),
     );
@@ -97,13 +103,16 @@ class _NearbyScreenState extends State<NearbyScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Consulting the Wizard\'s map...'),
+            const CircularProgressIndicator(color: WwColors.gold),
+            const SizedBox(height: 16),
+            Text(
+              "Consulting the Wizard's map…",
+              style: WwText.bodyMedium(),
+            ),
           ],
         ),
       );
@@ -118,17 +127,21 @@ class _NearbyScreenState extends State<NearbyScreen> {
             children: [
               const Text('🧙‍♂️', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 16),
-              const Text(
-                'The Wizard\'s crystal ball is foggy.',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              Text(
+                "The Wizard's crystal ball is foggy.",
+                style: WwText.titleMedium(),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(_error!, textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey)),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: WwText.bodySmall(),
+              ),
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: _load,
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Try Again'),
               ),
             ],
@@ -138,15 +151,16 @@ class _NearbyScreenState extends State<NearbyScreen> {
     }
 
     if (_response == null || _response!.merchants.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('😬', style: TextStyle(fontSize: 48)),
-            SizedBox(height: 16),
+            const Text('😬', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 16),
             Text(
               'No merchants found nearby.\nEven the Wizard has limits.',
               textAlign: TextAlign.center,
+              style: WwText.bodyMedium(),
             ),
           ],
         ),
@@ -154,14 +168,17 @@ class _NearbyScreenState extends State<NearbyScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
         // Pricing Precedent banner
         if (_response!.pricingPrecedentApplied && !_showGlobalTier)
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _PricingPrecedentBanner(
-              onShowGlobal: () { setState(() => _showGlobalTier = true); _load(); },
+              onShowGlobal: () {
+                setState(() => _showGlobalTier = true);
+                _load();
+              },
             ),
           ),
 
@@ -170,17 +187,23 @@ class _NearbyScreenState extends State<NearbyScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 20),
             child: _WineComparisonCard(
-              tier:          tier,
-              color:         _tierColors[tier.tier] ?? Colors.grey.shade700,
-              icon:          _tierIcons[tier.tier]  ?? Icons.place,
-              onShowGlobal:  () { setState(() => _showGlobalTier = true); _load(); },
+              tier:         tier,
+              color:        _tierColors[tier.tier] ?? Colors.grey.shade700,
+              icon:         _tierIcons[tier.tier]  ?? Icons.place,
+              onShowGlobal: () {
+                setState(() => _showGlobalTier = true);
+                _load();
+              },
             ),
           ),
 
         // Unlock toggle when global tier is already shown
         if (_showGlobalTier)
           _GlobalTierToggle(
-            onHide: () { setState(() => _showGlobalTier = false); _load(); },
+            onHide: () {
+              setState(() => _showGlobalTier = false);
+              _load();
+            },
           ),
       ],
     );
@@ -190,7 +213,6 @@ class _NearbyScreenState extends State<NearbyScreen> {
 
 // ---------------------------------------------------------------------------
 // Wine Comparison Card
-// Mirrors the React <WineComparisonUI> card design.
 // ---------------------------------------------------------------------------
 
 class _WineComparisonCard extends StatelessWidget {
@@ -208,7 +230,6 @@ class _WineComparisonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Suppressed tier — show locked state instead
     if (tier.suppressed) {
       return _SuppressedCard(
         tier:         tier,
@@ -218,7 +239,6 @@ class _WineComparisonCard extends StatelessWidget {
       );
     }
 
-    // No results for this tier
     if (tier.bestMatch == null) {
       return _EmptyTierCard(tier: tier, color: color, icon: icon);
     }
@@ -226,27 +246,16 @@ class _WineComparisonCard extends StatelessWidget {
     final best = tier.bestMatch!;
 
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),  // slate-200
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: WwDecorations.card(),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Regional Badge ──────────────────────────────────────────
+            // ── Tier header strip ──────────────────────────────────────────
             Container(
-              color: color,
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: WwDecorations.tierHeader(color),
+              padding: const EdgeInsets.symmetric(vertical: 9),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -254,20 +263,15 @@ class _WineComparisonCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     tier.label.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2.0,
-                    ),
+                    style: WwText.badgeLabel(),
                   ),
                 ],
               ),
             ),
 
-            // ── Content area ────────────────────────────────────────────
+            // ── Content area ───────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -277,87 +281,69 @@ class _WineComparisonCard extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         tier.persona!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                          color: color.withValues(alpha: 0.8),
-                        ),
+                        style: WwText.personaTag(
+                            color: color.withValues(alpha: 0.9)),
                       ),
                     ),
 
-                  // Wine / brand name
+                  // Wine / brand name — Cormorant serif
                   Text(
                     best.brand,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),  // slate-800
-                    ),
+                    style: WwText.headlineMedium(),
                   ),
 
                   // Region
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     best.region.isNotEmpty ? best.region : tier.regionHint,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Color(0xFF64748B),  // slate-500
-                    ),
+                    style: WwText.bodyMedium()
+                        .copyWith(fontStyle: FontStyle.italic),
                   ),
 
-                  // Price
-                  const SizedBox(height: 10),
-                  Text(
-                    '${best.currencySymbol}${best.priceLocal.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),  // slate-900
-                    ),
-                  ),
-
-                  // ── Witty Statement callout ──────────────────────────
-                  if (tier.wit != null && tier.wit!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFBEB),   // amber-50
-                        borderRadius: BorderRadius.circular(6),
-                        border: const Border(
-                          left: BorderSide(color: Color(0xFFFBBF24), width: 4),  // amber-400
-                        ),
+                  // Price — hero stat
+                  const SizedBox(height: 14),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        best.currencyCode,
+                        style: WwText.priceCurrency(),
                       ),
-                      padding: const EdgeInsets.all(12),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${best.currencySymbol}${best.priceLocal.toStringAsFixed(2)}',
+                        style: WwText.priceHero(),
+                      ),
+                    ],
+                  ),
+
+                  // ── Wit callout ─────────────────────────────────────────
+                  if (tier.wit != null && tier.wit!.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    Container(
+                      decoration: WwDecorations.witCallout(),
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                       child: Text(
                         '" ${tier.wit} "',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF78350F),  // amber-900
-                          height: 1.4,
-                        ),
+                        style: WwText.witQuote(),
                       ),
                     ),
                   ],
 
-                  // ── Educational insight ──────────────────────────────
-                  if (tier.eduInsight != null && tier.eduInsight!.isNotEmpty) ...[
+                  // ── Educational insight ─────────────────────────────────
+                  if (tier.eduInsight != null &&
+                      tier.eduInsight!.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     RichText(
                       text: TextSpan(
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF475569),  // slate-600
-                          height: 1.6,
-                        ),
+                        style: WwText.bodyMedium(),
                         children: [
-                          const TextSpan(
+                          TextSpan(
                             text: 'The Difference: ',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E293B),  // slate-800
-                            ),
+                            style: WwText.bodyMedium(
+                                    color: WwColors.textPrimary)
+                                .copyWith(fontWeight: FontWeight.w700),
                           ),
                           TextSpan(text: tier.eduInsight),
                         ],
@@ -365,33 +351,33 @@ class _WineComparisonCard extends StatelessWidget {
                     ),
                   ],
 
-                  // ── Comparison note ──────────────────────────────────
-                  if (tier.comparisonNote != null && tier.comparisonNote!.isNotEmpty) ...[
+                  // ── Comparison note ─────────────────────────────────────
+                  if (tier.comparisonNote != null &&
+                      tier.comparisonNote!.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(Icons.compare_arrows,
-                            size: 14, color: color.withValues(alpha: 0.55)),
+                            size: 14,
+                            color: color.withValues(alpha: 0.55)),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             tier.comparisonNote!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontStyle: FontStyle.italic,
-                              color: color.withValues(alpha: 0.7),
-                              height: 1.4,
-                            ),
+                            style: WwText.bodySmall()
+                                .copyWith(fontStyle: FontStyle.italic),
                           ),
                         ),
                       ],
                     ),
                   ],
 
-                  // Badge row: Partner, Online Only, Call to Confirm
-                  if (best.isPartner || best.isOnlineOnly || best.needsVerification) ...[
-                    const SizedBox(height: 12),
+                  // Badge row
+                  if (best.isPartner ||
+                      best.isOnlineOnly ||
+                      best.needsVerification) ...[
+                    const SizedBox(height: 14),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
@@ -399,19 +385,19 @@ class _WineComparisonCard extends StatelessWidget {
                         if (best.isPartner)
                           _SmallBadge(
                             label: 'Partner',
-                            color: Colors.deepPurple.shade600,
+                            borderColor: WwColors.gold,
                             icon: Icons.verified,
                           ),
                         if (best.isOnlineOnly)
                           _SmallBadge(
                             label: 'Online Only',
-                            color: Colors.blueGrey.shade600,
+                            borderColor: WwColors.tierNational,
                             icon: Icons.local_shipping_outlined,
                           ),
                         if (best.needsVerification)
                           _SmallBadge(
                             label: 'Call to Confirm Stock',
-                            color: Colors.orange.shade700,
+                            borderColor: WwColors.warning,
                             icon: Icons.phone,
                           ),
                       ],
@@ -421,12 +407,11 @@ class _WineComparisonCard extends StatelessWidget {
               ),
             ),
 
-            // ── Action buttons ───────────────────────────────────────────
+            // ── Action buttons ─────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
               child: Column(
                 children: [
-                  // Primary: deep-link to retailer's search page for this wine
                   if (best.websiteUrl.isNotEmpty)
                     SizedBox(
                       width: double.infinity,
@@ -435,35 +420,39 @@ class _WineComparisonCard extends StatelessWidget {
                         icon: const Icon(Icons.open_in_new, size: 16),
                         label: Text(
                           'Shop ${best.name.split(' ').first} Online',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15),
                         ),
                         style: FilledButton.styleFrom(
                           backgroundColor: color,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                          textStyle: WwText.labelLarge(color: Colors.white),
                         ),
                       ),
                     ),
                   if (best.websiteUrl.isNotEmpty) const SizedBox(height: 8),
-                  // Secondary: show all stockists for this tier
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: () => _showMerchantSheet(context, tier, color),
+                      onPressed: () =>
+                          _showMerchantSheet(context, tier, color),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(
+                            color: WwColors.borderMedium, width: 1),
+                        foregroundColor: WwColors.textSecondary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'See All Stockists',
-                        style: TextStyle(fontSize: 14),
+                        style: WwText.bodyMedium(
+                            color: WwColors.textSecondary),
                       ),
                     ),
                   ),
@@ -481,6 +470,7 @@ class _WineComparisonCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: WwColors.bgElevated,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -491,7 +481,7 @@ class _WineComparisonCard extends StatelessWidget {
 
 
 // ---------------------------------------------------------------------------
-// Merchant bottom sheet — shown when user taps "Select this Bottle"
+// Merchant bottom sheet
 // ---------------------------------------------------------------------------
 
 class _MerchantBottomSheet extends StatefulWidget {
@@ -524,10 +514,11 @@ class _MerchantBottomSheetState extends State<_MerchantBottomSheet> {
             // Handle
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: WwColors.borderMedium,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -536,15 +527,11 @@ class _MerchantBottomSheetState extends State<_MerchantBottomSheet> {
             // Header
             Text(
               'Stockists — ${widget.tier.label}',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: widget.color,
-              ),
+              style: WwText.titleMedium(color: widget.color),
             ),
             Text(
               widget.tier.regionHint,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: WwText.bodySmall(),
             ),
             const SizedBox(height: 16),
 
@@ -563,7 +550,7 @@ class _MerchantBottomSheetState extends State<_MerchantBottomSheet> {
                 icon: const Icon(Icons.expand_more, size: 16),
                 label: Text(
                   '${matches.length - 1} more stockist${matches.length - 1 == 1 ? '' : 's'}',
-                  style: const TextStyle(fontSize: 13),
+                  style: WwText.bodyMedium(color: WwColors.gold),
                 ),
               ),
           ],
@@ -595,10 +582,10 @@ class _MerchantRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: WwColors.bgSurface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isBest ? color : Colors.grey.shade200,
+          color: isBest ? color : WwColors.borderSubtle,
           width: isBest ? 1.5 : 1,
         ),
       ),
@@ -606,11 +593,12 @@ class _MerchantRow extends StatelessWidget {
         children: [
           // Distance bubble
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: isBest
-                  ? color.withValues(alpha: 0.10)
-                  : Colors.grey.shade100,
+                  ? color.withValues(alpha: 0.15)
+                  : WwColors.bgElevated,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -621,15 +609,15 @@ class _MerchantRow extends StatelessWidget {
                     merchant.distanceKm < 1
                         ? '${(merchant.distanceKm * 1000).toStringAsFixed(0)}m'
                         : '${merchant.distanceKm.toStringAsFixed(1)}km',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isBest ? color : Colors.grey.shade700,
-                    ),
+                    style: WwText.bodySmall(
+                        color: isBest ? color : WwColors.textSecondary)
+                        .copyWith(fontWeight: FontWeight.w700, fontSize: 10),
                   ),
-                  Icon(Icons.place,
-                      size: 12,
-                      color: isBest ? color : Colors.grey.shade400),
+                  Icon(
+                    Icons.place,
+                    size: 12,
+                    color: isBest ? color : WwColors.textDisabled,
+                  ),
                 ],
               ),
             ),
@@ -644,17 +632,16 @@ class _MerchantRow extends StatelessWidget {
                     Expanded(
                       child: Text(
                         merchant.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14),
+                        style: WwText.titleMedium(),
                       ),
                     ),
                     if (isBest)
-                      _SmallBadge(label: 'Closest', color: color),
+                      _SmallBadge(label: 'Closest', borderColor: color),
                     if (merchant.isPartner) ...[
                       const SizedBox(width: 4),
                       _SmallBadge(
                         label: 'Partner',
-                        color: Colors.deepPurple.shade600,
+                        borderColor: WwColors.gold,
                         icon: Icons.verified,
                       ),
                     ],
@@ -662,7 +649,7 @@ class _MerchantRow extends StatelessWidget {
                       const SizedBox(width: 4),
                       _SmallBadge(
                         label: 'Online',
-                        color: Colors.blueGrey.shade600,
+                        borderColor: WwColors.tierNational,
                         icon: Icons.local_shipping_outlined,
                       ),
                     ],
@@ -670,7 +657,7 @@ class _MerchantRow extends StatelessWidget {
                       const SizedBox(width: 4),
                       _SmallBadge(
                         label: 'Call First',
-                        color: Colors.orange.shade700,
+                        borderColor: WwColors.warning,
                         icon: Icons.phone,
                       ),
                     ],
@@ -679,7 +666,7 @@ class _MerchantRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   merchant.address,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: WwText.bodySmall(),
                 ),
                 if (merchant.websiteUrl.isNotEmpty) ...[
                   const SizedBox(height: 6),
@@ -687,16 +674,14 @@ class _MerchantRow extends StatelessWidget {
                     onTap: () => _openUrl(merchant.websiteUrl),
                     child: Row(
                       children: [
-                        Icon(Icons.open_in_new,
-                            size: 12, color: Colors.blue.shade600),
+                        const Icon(Icons.open_in_new,
+                            size: 12, color: WwColors.gold),
                         const SizedBox(width: 3),
                         Text(
                           'Shop online',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade600,
-                            decoration: TextDecoration.underline,
-                          ),
+                          style: WwText.bodySmall(color: WwColors.gold)
+                              .copyWith(
+                                  decoration: TextDecoration.underline),
                         ),
                       ],
                     ),
@@ -708,11 +693,8 @@ class _MerchantRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '${merchant.currencySymbol}${merchant.priceLocal.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: WwText.bodyMedium(color: color)
+                .copyWith(fontWeight: FontWeight.w700, fontSize: 15),
           ),
         ],
       ),
@@ -722,37 +704,42 @@ class _MerchantRow extends StatelessWidget {
 
 
 // ---------------------------------------------------------------------------
-// Small badge chip
+// Small badge chip — outlined style
 // ---------------------------------------------------------------------------
 
 class _SmallBadge extends StatelessWidget {
   final String label;
-  final Color color;
+  final Color borderColor;
   final IconData? icon;
 
-  const _SmallBadge({required this.label, required this.color, this.icon});
+  const _SmallBadge({
+    required this.label,
+    required this.borderColor,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color,
+        color: borderColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 10, color: Colors.white),
+            Icon(icon, size: 10, color: borderColor),
             const SizedBox(width: 3),
           ],
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: borderColor,
               fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -763,7 +750,7 @@ class _SmallBadge extends StatelessWidget {
 
 
 // ---------------------------------------------------------------------------
-// Empty tier card (no results in this tier)
+// Empty tier card
 // ---------------------------------------------------------------------------
 
 class _EmptyTierCard extends StatelessWidget {
@@ -777,27 +764,19 @@ class _EmptyTierCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+      decoration: WwDecorations.card(),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Column(
           children: [
             Container(
-              color: color.withValues(alpha: 0.4),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: WwDecorations.tierHeader(
+                  color.withValues(alpha: 0.45)),
+              padding: const EdgeInsets.symmetric(vertical: 9),
               child: Center(
                 child: Text(
                   tier.label.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0,
-                  ),
+                  style: WwText.badgeLabel(),
                 ),
               ),
             ),
@@ -805,13 +784,13 @@ class _EmptyTierCard extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  Icon(Icons.search_off, color: Colors.grey.shade400),
+                  Icon(Icons.search_off,
+                      color: WwColors.textDisabled),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'No ${tier.label} options found for this wine.',
-                      style: TextStyle(
-                          color: Colors.grey.shade500, fontSize: 13),
+                      style: WwText.bodyMedium(),
                     ),
                   ),
                 ],
@@ -826,7 +805,7 @@ class _EmptyTierCard extends StatelessWidget {
 
 
 // ---------------------------------------------------------------------------
-// Suppressed tier card  (Pricing Precedent applied to Tier 3)
+// Suppressed tier card
 // ---------------------------------------------------------------------------
 
 class _SuppressedCard extends StatelessWidget {
@@ -845,19 +824,17 @@ class _SuppressedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
+      decoration: WwDecorations.card(
+          borderColor: color.withValues(alpha: 0.25)),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              color: color.withValues(alpha: 0.25),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: WwDecorations.tierHeader(
+                  color.withValues(alpha: 0.3)),
+              padding: const EdgeInsets.symmetric(vertical: 9),
               child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -867,12 +844,7 @@ class _SuppressedCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       tier.label.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2.0,
-                      ),
+                      style: WwText.badgeLabel(),
                     ),
                   ],
                 ),
@@ -886,17 +858,17 @@ class _SuppressedCard extends StatelessWidget {
                   Text(
                     tier.suppressionReason ??
                         'International option hidden — significantly pricier than local.',
-                    style: TextStyle(
-                        fontSize: 13, color: Colors.grey.shade600, height: 1.5),
+                    style: WwText.bodyMedium(),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: onShowGlobal,
                     icon: Icon(Icons.public, size: 16, color: color),
                     label: Text('Show international options',
-                        style: TextStyle(color: color)),
+                        style: WwText.bodyMedium(color: color)),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: color),
+                      foregroundColor: color,
                     ),
                   ),
                 ],
@@ -911,7 +883,7 @@ class _SuppressedCard extends StatelessWidget {
 
 
 // ---------------------------------------------------------------------------
-// Pricing Precedent banner (top of list)
+// Pricing Precedent banner
 // ---------------------------------------------------------------------------
 
 class _PricingPrecedentBanner extends StatelessWidget {
@@ -924,26 +896,24 @@ class _PricingPrecedentBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),   // amber-50
-        border: Border.all(color: const Color(0xFFFDE68A)),  // amber-300
+        color: WwColors.bgSurface,
+        border: Border.all(color: WwColors.goldMuted),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline,
-              color: Color(0xFFB45309), size: 18),  // amber-700
+          const Icon(Icons.info_outline, color: WwColors.gold, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Global Icon hidden — it\'s significantly pricier than the local option.',
-              style: TextStyle(
-                  fontSize: 13, color: Colors.amber.shade900),
+              "Global Icon hidden — it's significantly pricier than the local option.",
+              style: WwText.bodySmall(color: WwColors.gold),
             ),
           ),
           const SizedBox(width: 8),
           TextButton(
             onPressed: onShowGlobal,
-            child: const Text('Show'),
+            child: Text('Show', style: WwText.bodyMedium(color: WwColors.gold)),
           ),
         ],
       ),
@@ -953,7 +923,7 @@ class _PricingPrecedentBanner extends StatelessWidget {
 
 
 // ---------------------------------------------------------------------------
-// Global tier toggle (shown when Tier 3 is unlocked)
+// Global tier toggle
 // ---------------------------------------------------------------------------
 
 class _GlobalTierToggle extends StatelessWidget {
@@ -966,11 +936,11 @@ class _GlobalTierToggle extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.public, size: 13, color: Colors.grey.shade400),
+        const Icon(Icons.public, size: 13, color: WwColors.textDisabled),
         const SizedBox(width: 6),
         Text(
           'International options unlocked',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          style: WwText.bodySmall(),
         ),
         const SizedBox(width: 8),
         TextButton(
@@ -979,7 +949,8 @@ class _GlobalTierToggle extends StatelessWidget {
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text('Hide', style: TextStyle(fontSize: 12)),
+          child: Text('Hide',
+              style: WwText.bodySmall(color: WwColors.gold)),
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'screens/age_gate_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/quiz_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,15 +21,7 @@ class WineWizardApp extends StatefulWidget {
 }
 
 class _WineWizardAppState extends State<WineWizardApp> {
-  ThemeMode _themeMode = ThemeMode.system;
   _AppStage _stage = _AppStage.ageGate;
-
-  void _toggleTheme() {
-    setState(() {
-      _themeMode =
-          _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    });
-  }
 
   void _advance() {
     setState(() {
@@ -41,23 +34,13 @@ class _WineWizardAppState extends State<WineWizardApp> {
     return MaterialApp(
       title: 'Wine Wizard',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.deepPurple,
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: Colors.deepPurple,
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
-      themeMode: _themeMode,
+      theme: WwTheme.dark(),
+      darkTheme: WwTheme.dark(),
+      themeMode: ThemeMode.dark,
       home: switch (_stage) {
         _AppStage.ageGate => AgeGateScreen(onConfirmed: _advance),
         _AppStage.onboarding => OnboardingScreen(onComplete: _advance),
-        _AppStage.quiz => QuizScreen(
-            themeMode: _themeMode,
-            onToggleTheme: _toggleTheme,
-          ),
+        _AppStage.quiz => const QuizScreen(),
       },
     );
   }

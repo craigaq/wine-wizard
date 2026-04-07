@@ -11,6 +11,7 @@ import 'package:wine_wizard/stubs/chime_stub.dart'
     if (dart.library.html) 'package:wine_wizard/stubs/chime_web.dart';
 
 import 'package:flutter/material.dart';
+import 'package:wine_wizard/theme/app_theme.dart';
 
 // ---------------------------------------------------------------------------
 // Cartoon data for each attribute
@@ -174,20 +175,14 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
   Widget build(BuildContext context) {
     final cards = _cardsFor(widget.title);
     final selected = cards[widget.value - 1];
-    final cs = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Title
-        Text(
-          widget.title,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        Text(widget.title, style: WwText.headlineLarge()),
         const SizedBox(height: 8),
-        Text(widget.description, style: Theme.of(context).textTheme.bodyMedium),
+        Text(widget.description, style: WwText.bodyMedium()),
         const SizedBox(height: 32),
 
         // ── Hero card ────────────────────────────────────────────────────
@@ -200,29 +195,30 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Card background
+                  // Card background — deep surface with gold gradient hint
                   Container(
                     width: 240,
                     height: 210,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [cs.primaryContainer, cs.secondaryContainer],
+                        colors: [WwColors.bgElevated, WwColors.bgSurface],
                       ),
                       borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: WwColors.gold, width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                          color: cs.primary.withValues(alpha: 0.35),
-                          blurRadius: 24,
-                          spreadRadius: 4,
+                          color: WwColors.gold.withValues(alpha: 0.30),
+                          blurRadius: 28,
+                          spreadRadius: 2,
                         ),
                       ],
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Big cartoon emoji — swaps on value change
+                        // Big cartoon emoji
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 350),
                           transitionBuilder: (child, anim) =>
@@ -234,21 +230,17 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // Label
+                        // Label — DM Sans bold
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 250),
                           child: Text(
                             selected.label,
                             key: ValueKey(widget.value),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: cs.onPrimaryContainer,
-                            ),
+                            style: WwText.titleMedium(color: WwColors.textPrimary),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        // Flavour text
+                        const SizedBox(height: 6),
+                        // Flavour text — Cormorant italic (the premium touch)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: AnimatedSwitcher(
@@ -257,12 +249,8 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                               selected.flavour,
                               key: ValueKey(widget.value),
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 11,
-                                height: 1.4,
-                                color: cs.onPrimaryContainer.withValues(
-                                  alpha: 0.70,
-                                ),
+                              style: WwText.witQuote(
+                                color: WwColors.gold.withValues(alpha: 0.85),
                               ),
                             ),
                           ),
@@ -354,12 +342,15 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                 width: sel ? 64 : 54,
                 height: sel ? 84 : 72,
                 decoration: BoxDecoration(
-                  color: sel ? cs.primary : cs.surfaceContainerHighest,
+                  color: sel ? WwColors.gold : WwColors.bgSurface,
                   borderRadius: BorderRadius.circular(18),
+                  border: sel
+                      ? null
+                      : Border.all(color: WwColors.borderSubtle, width: 1),
                   boxShadow: sel
                       ? [
                           BoxShadow(
-                            color: cs.primary.withValues(alpha: 0.55),
+                            color: WwColors.gold.withValues(alpha: 0.45),
                             blurRadius: 14,
                             spreadRadius: 2,
                           ),
@@ -373,11 +364,9 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                     const SizedBox(height: 3),
                     Text(
                       '$v',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: sel ? Colors.white : cs.onSurfaceVariant,
-                      ),
+                      style: WwText.bodySmall(
+                        color: sel ? Colors.black : WwColors.textSecondary,
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 11),
                     ),
                   ],
                 ),

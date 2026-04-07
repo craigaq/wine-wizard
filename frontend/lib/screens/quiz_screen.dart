@@ -4,19 +4,13 @@ import '../models/wine_recommendation.dart';
 import '../screens/nearby_screen.dart';
 import '../services/api_service.dart';
 import '../services/currency_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/conflict_alert.dart';
 import '../widgets/magic_palette_step.dart';
 import '../widgets/palate_dial.dart';
 
 class QuizScreen extends StatefulWidget {
-  final ThemeMode themeMode;
-  final VoidCallback onToggleTheme;
-
-  const QuizScreen({
-    super.key,
-    required this.themeMode,
-    required this.onToggleTheme,
-  });
+  const QuizScreen({super.key});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -352,23 +346,16 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = widget.themeMode == ThemeMode.dark;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wine Wizard'),
+        title: Text('Wine Wizard', style: WwText.titleLarge()),
         centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: isDark ? 'Light mode' : 'Dark mode',
-            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-            onPressed: widget.onToggleTheme,
-          ),
-        ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
+          preferredSize: const Size.fromHeight(3),
           child: LinearProgressIndicator(
             value: (_currentPage + 1) / _totalPages,
-            backgroundColor: Colors.deepPurple.shade100,
+            backgroundColor: WwColors.borderSubtle,
+            valueColor: const AlwaysStoppedAnimation<Color>(WwColors.gold),
           ),
         ),
       ),
@@ -470,16 +457,14 @@ class _QuizScreenState extends State<QuizScreen> {
           const Text('🍷', style: TextStyle(fontSize: 72)),
           const SizedBox(height: 24),
           Text(
-            'Welcome to Wine Wizard',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            'Welcome to\nWine Wizard',
+            style: WwText.displayLarge(),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             'Answer 8 quick questions about your palate and we\'ll find wines that actually match how you think.',
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: WwText.bodyLarge(color: WwColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -526,32 +511,22 @@ class _QuizScreenState extends State<QuizScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Food Pairing',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Food Pairing', style: WwText.headlineLarge()),
           const SizedBox(height: 8),
           Text(
             "What's on the table tonight? The Wizard will fine-tune your match.",
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: WwText.bodyMedium(),
           ),
           const SizedBox(height: 16),
           // Dry preference toggle — activates Palate Paradox detection
           Card(
-            margin: EdgeInsets.zero,
             child: SwitchListTile(
-              dense: true,
-              secondary: const Text('🍷', style: TextStyle(fontSize: 20)),
+              secondary: const Text('🍷', style: TextStyle(fontSize: 22)),
               title: const Text('I prefer dry wines'),
-              subtitle: const Text(
-                'The Wizard will flag sweet-pairing conflicts',
-              ),
+              subtitle: const Text('The Wizard will flag sweet-pairing conflicts'),
               value: _prefDry,
               onChanged: (v) => setState(() {
                 _prefDry = v;
-                // Reset any previously chosen override when preference changes
                 _overrideMode = 'use_pairing_logic';
               }),
             ),
@@ -591,46 +566,30 @@ class _QuizScreenState extends State<QuizScreen> {
 
           const SizedBox(height: 16),
 
-          // Pairing mode toggle — only shown when a food is selected
-          if (_foodPairing != 'none') ...[
-            Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pairing Philosophy',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<String>(
-                      style: SegmentedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      segments: const [
-                        ButtonSegment(
-                          value: 'congruent',
-                          label: Text('Match the dish'),
-                          icon: Icon(Icons.link, size: 16),
-                        ),
-                        ButtonSegment(
-                          value: 'contrast',
-                          label: Text('Balance the dish'),
-                          icon: Icon(Icons.balance, size: 16),
-                        ),
-                      ],
-                      selected: {_pairingMode},
-                      onSelectionChanged: (Set<String> selection) =>
-                          setState(() => _pairingMode = selection.first),
-                    ),
-                  ],
-                ),
+          // Pairing Philosophy — animated reveal once a food is chosen
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 320),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.08),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
               ),
             ),
-            const SizedBox(height: 16),
-          ],
+            child: _foodPairing != 'none'
+                ? Padding(
+                    key: const ValueKey('philosophy'),
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _PairingPhilosophyPicker(
+                      value: _pairingMode,
+                      onChanged: (v) => setState(() => _pairingMode = v),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('philosophy-hidden')),
+          ),
 
           // Wizard commentary — fades in/out as the selection changes
           AnimatedSwitcher(
@@ -658,16 +617,11 @@ class _QuizScreenState extends State<QuizScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your Budget (per bottle)',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Your Budget (per bottle)', style: WwText.headlineLarge()),
           const SizedBox(height: 8),
           Text(
             'The Wizard respects all budgets. Even the modest ones.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: WwText.bodyMedium(),
           ),
           const SizedBox(height: 32),
           Column(
@@ -690,16 +644,14 @@ class _QuizScreenState extends State<QuizScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: selected
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
+                            ? WwColors.bgElevated
+                            : WwColors.bgSurface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: selected
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.transparent,
-                          width: 2,
+                              ? WwColors.gold
+                              : WwColors.borderSubtle,
+                          width: selected ? 2 : 1,
                         ),
                       ),
                       child: Row(
@@ -707,18 +659,19 @@ class _QuizScreenState extends State<QuizScreen> {
                         children: [
                           Text(
                             label,
-                            style: TextStyle(
+                            style: WwText.bodyLarge(
+                              color: selected
+                                  ? WwColors.textPrimary
+                                  : WwColors.textSecondary,
+                            ).copyWith(
                               fontWeight: selected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 16,
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                             ),
                           ),
                           if (selected)
-                            Icon(
-                              Icons.check_circle,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                            const Icon(Icons.check_circle,
+                                color: WwColors.gold),
                         ],
                       ),
                     ),
@@ -740,16 +693,11 @@ class _QuizScreenState extends State<QuizScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'Your Palate Dial',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Your Palate Dial', style: WwText.headlineLarge()),
           const SizedBox(height: 8),
           Text(
-            'Here\'s a snapshot of your palate. Looking good.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            "Here's a snapshot of your palate. Looking good.",
+            style: WwText.bodyMedium(),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -763,22 +711,15 @@ class _QuizScreenState extends State<QuizScreen> {
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.shade300),
-              ),
-              child: const Row(
+              decoration: WwDecorations.witCallout(),
+              child: Row(
                 children: [
-                  Text('🧙‍♂️'),
-                  SizedBox(width: 8),
-                  Flexible(
+                  const Text('🧙‍♂️'),
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
                       'Hmm. Light Weight with High Texture — the Wizard has thoughts. Tap Next.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      style: WwText.witQuote(),
                     ),
                   ),
                 ],
@@ -805,74 +746,55 @@ class _QuizScreenState extends State<QuizScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your Profile',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Your Profile', style: WwText.headlineLarge()),
           const SizedBox(height: 8),
           Text(
             'Looking good. Hit "Find My Wine!" when you\'re ready.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: WwText.bodyMedium(),
           ),
           const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  ...rows.map(
-                    (r) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            r.$1,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          _ScoreDots(value: r.$2),
-                        ],
-                      ),
+          Container(
+            decoration: WwDecorations.card(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                ...rows.map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(r.$1, style: WwText.bodyMedium(color: WwColors.textPrimary)),
+                        _ScoreDots(value: r.$2),
+                      ],
                     ),
                   ),
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Food Pairing',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        _foodLabel,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Budget (per bottle)',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        _selectedBracket.label,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                const Divider(height: 24, color: WwColors.borderSubtle),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Food Pairing', style: WwText.bodyMedium(color: WwColors.textPrimary)),
+                    Text(
+                      _foodLabel,
+                      style: WwText.bodyMedium(color: WwColors.gold)
+                          .copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Budget (per bottle)', style: WwText.bodyMedium(color: WwColors.textPrimary)),
+                    Text(
+                      _selectedBracket.label,
+                      style: WwText.bodyMedium(color: WwColors.gold)
+                          .copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -886,13 +808,13 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Widget _buildResultsStep() {
     if (_loading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Consulting the cellar...'),
+            const CircularProgressIndicator(color: WwColors.gold),
+            const SizedBox(height: 16),
+            Text('Consulting the cellar…', style: WwText.bodyMedium()),
           ],
         ),
       );
@@ -909,7 +831,7 @@ class _QuizScreenState extends State<QuizScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            Text(_error!, style: WwText.bodyMedium(color: WwColors.error)),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _fetchResults,
@@ -926,16 +848,11 @@ class _QuizScreenState extends State<QuizScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your Recommendations',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Your Recommendations', style: WwText.headlineLarge()),
           const SizedBox(height: 4),
           Text(
             'Tap a card to see how each wine matches your palate.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: WwText.bodyMedium(),
           ),
           const SizedBox(height: 16),
           ..._results!.asMap().entries.map((entry) {
@@ -996,26 +913,26 @@ class _WineResultCardState extends State<_WineResultCard> {
 
   Color _rankColor() {
     return switch (widget.rank) {
-      1 => Colors.amber.shade300,
-      2 => Colors.grey.shade400,
-      3 => Colors.brown.shade300,
-      _ => Colors.grey.shade200,
+      1 => WwColors.gold,
+      2 => WwColors.textSecondary,
+      3 => WwColors.goldMuted,
+      _ => WwColors.borderMedium,
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: widget.rank == 1
-            ? BorderSide(color: color, width: 1.5)
-            : BorderSide.none,
+      decoration: WwDecorations.card(
+        borderColor: widget.rank == 1 ? WwColors.gold : null,
+      ).copyWith(
+        border: widget.rank == 1
+            ? Border.all(color: WwColors.gold, width: 1.5)
+            : Border.all(color: WwColors.borderSubtle),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => setState(() => _expanded = !_expanded),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -1027,12 +944,13 @@ class _WineResultCardState extends State<_WineResultCard> {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: _rankColor(),
+                    backgroundColor: _rankColor().withValues(alpha: 0.18),
                     child: Text(
                       '${widget.rank}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: _rankColor(),
                       ),
                     ),
                   ),
@@ -1046,10 +964,7 @@ class _WineResultCardState extends State<_WineResultCard> {
                             Expanded(
                               child: Text(
                                 widget.wine.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                                style: WwText.headlineMedium(),
                               ),
                             ),
                             if (widget.rank == 1)
@@ -1058,17 +973,14 @@ class _WineResultCardState extends State<_WineResultCard> {
                         ),
                         Text(
                           'Match: ${(widget.wine.score * 100).toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
+                          style: WwText.bodySmall(color: WwColors.goldMuted),
                         ),
                       ],
                     ),
                   ),
                   Icon(
                     _expanded ? Icons.expand_less : Icons.expand_more,
-                    color: Colors.grey,
+                    color: WwColors.textSecondary,
                   ),
                 ],
               ),
@@ -1093,11 +1005,8 @@ class _WineResultCardState extends State<_WineResultCard> {
                     const SizedBox(width: 8),
                     Text(
                       'Wine',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
+                      style: WwText.bodySmall(color: WwColors.gold)
+                          .copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -1114,13 +1023,13 @@ class _WineResultCardState extends State<_WineResultCard> {
                         Expanded(
                           child: Text(
                             attr,
-                            style: const TextStyle(fontSize: 12),
+                            style: WwText.bodySmall(),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        _ScoreDots(value: userVal, color: Colors.grey.shade400),
+                        _ScoreDots(value: userVal, color: WwColors.textDisabled),
                         const SizedBox(width: 8),
-                        _ScoreDots(value: wineVal, color: color),
+                        _ScoreDots(value: wineVal, color: WwColors.gold),
                       ],
                     ),
                   );
@@ -1173,26 +1082,14 @@ class _WizardComment extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.deepPurple.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.deepPurple.shade100),
-      ),
+      decoration: WwDecorations.witCallout(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('🧙‍♂️', style: TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.45,
-                color: Colors.deepPurple.shade800,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
+            child: Text(text, style: WwText.witQuote()),
           ),
         ],
       ),
@@ -1219,7 +1116,6 @@ class _FoodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
     final label = option['label']!;
     final emoji = option['emoji']!;
 
@@ -1228,19 +1124,17 @@ class _FoodCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         decoration: BoxDecoration(
-          color: selected
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
+          color: selected ? WwColors.bgElevated : WwColors.bgSurface,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? primary : Colors.transparent,
-            width: 2,
+            color: selected ? WwColors.gold : WwColors.borderSubtle,
+            width: selected ? 2 : 1,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: primary.withValues(alpha: 0.18),
-                    blurRadius: 8,
+                    color: WwColors.gold.withValues(alpha: 0.15),
+                    blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
                 ]
@@ -1251,7 +1145,6 @@ class _FoodCard extends StatelessWidget {
           vertical: 14,
         ),
         child: fullWidth
-            // Full-width layout: emoji + label side by side
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1259,16 +1152,17 @@ class _FoodCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: selected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                    style: WwText.bodyMedium(
+                      color: selected
+                          ? WwColors.textPrimary
+                          : WwColors.textSecondary,
+                    ).copyWith(
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                 ],
               )
-            // Grid cell layout: emoji on top, label below
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1279,12 +1173,13 @@ class _FoodCard extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      height: 1.3,
-                      fontWeight: selected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                    style: WwText.bodySmall(
+                      color: selected
+                          ? WwColors.textPrimary
+                          : WwColors.textSecondary,
+                    ).copyWith(
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                 ],
@@ -1305,7 +1200,7 @@ class _ScoreDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dotColor = color ?? Theme.of(context).colorScheme.primary;
+    final dotColor = color ?? WwColors.gold;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
@@ -1315,10 +1210,126 @@ class _ScoreDots extends StatelessWidget {
           height: 9,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: i < value ? dotColor : Colors.grey.shade300,
+            color: i < value ? dotColor : WwColors.borderMedium,
           ),
         );
       }),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pairing Philosophy binary card picker
+// ---------------------------------------------------------------------------
+
+class _PairingPhilosophyPicker extends StatelessWidget {
+  final String value; // 'congruent' | 'contrast'
+  final ValueChanged<String> onChanged;
+
+  const _PairingPhilosophyPicker({
+    required this.value,
+    required this.onChanged,
+  });
+
+  static const _options = [
+    (
+      id: 'congruent',
+      icon: '🎵',
+      label: 'Harmonise',
+      description: 'Find a wine that mirrors the dish — flavour meeting flavour.',
+    ),
+    (
+      id: 'contrast',
+      icon: '⚡',
+      label: 'Contrast',
+      description: 'Find a wine that challenges the dish — tension makes it sing.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Pairing Philosophy', style: WwText.titleMedium()),
+        const SizedBox(height: 4),
+        Text(
+          'Should your wine mirror the dish, or push back against it?',
+          style: WwText.bodySmall(),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int i = 0; i < _options.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              Expanded(child: _PhilosophyCard(
+                option: _options[i],
+                selected: value == _options[i].id,
+                onTap: () => onChanged(_options[i].id),
+              )),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PhilosophyCard extends StatelessWidget {
+  final ({String id, String icon, String label, String description}) option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PhilosophyCard({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+        decoration: BoxDecoration(
+          color: selected ? WwColors.goldTint : WwColors.bgSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? WwColors.gold : WwColors.borderSubtle,
+            width: selected ? 2 : 1,
+          ),
+          boxShadow: selected ? WwDecorations.goldGlow() : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon
+            Text(option.icon, style: const TextStyle(fontSize: 30)),
+            const SizedBox(height: 10),
+            // Label
+            Text(
+              option.label,
+              style: WwText.titleMedium(
+                color: selected ? WwColors.gold : WwColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Description
+            Text(
+              option.description,
+              style: WwText.bodySmall(
+                color: selected
+                    ? WwColors.textSecondary
+                    : WwColors.textDisabled,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

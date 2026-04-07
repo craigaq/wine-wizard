@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../widgets/palate_dial.dart';
 import '../widgets/wizard_animation.dart';
 
@@ -28,8 +29,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    // Backup listener — ensures _currentPage always reflects the real page
-    // even if onPageChanged fires late due to frame jank.
     _controller.addListener(() {
       final p = _controller.page?.round() ?? 0;
       if (p != _currentPage) setState(() => _currentPage = p);
@@ -45,11 +44,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Match the dark-purple card backgrounds so the button row blends in.
-      backgroundColor: const Color(0xFF1A0030),
+      backgroundColor: WwColors.bgDeep,
       body: Column(
         children: [
-          // Pages fill all available vertical space above the button row.
           Expanded(
             child: PageView.builder(
               controller: _controller,
@@ -63,12 +60,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
 
-          // Button row lives OUTSIDE the PageView — no Positioned/SafeArea
-          // ambiguity with Android 16 edge-to-edge insets.
+          // Button row — outside PageView to avoid Android 16 inset issues
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(32, 12, 32, 24),
+              padding: const EdgeInsets.fromLTRB(32, 12, 32, 28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -84,8 +80,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           color: active
-                              ? Colors.amber.shade400
-                              : Colors.white.withValues(alpha: 0.3),
+                              ? WwColors.gold
+                              : WwColors.borderMedium,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       );
@@ -94,25 +90,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                   const SizedBox(height: 20),
 
-                  // CTA button
-                  SizedBox(
+                  // CTA button with gold glow
+                  Container(
                     width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: WwDecorations.goldGlow(),
+                    ),
                     child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.amber.shade600,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                       onPressed: _next,
                       child: Text(
-                        _currentPage == 2 ? "Let's Get Started!" : 'Next',
+                        _currentPage == 2 ? "Let's Begin" : 'Next',
+                        style: WwText.labelLarge(color: Colors.black),
                       ),
                     ),
                   ),
@@ -127,18 +116,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Card 1 — The Introduction  (smoke-materialisation entrance)
+// Card 1 — The Introduction
 // ---------------------------------------------------------------------------
 
-
-class _CardIntroduction extends StatefulWidget {
+class _CardIntroduction extends StatelessWidget {
   const _CardIntroduction();
-
-  @override
-  State<_CardIntroduction> createState() => _CardIntroductionState();
-}
-
-class _CardIntroductionState extends State<_CardIntroduction> {
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +129,7 @@ class _CardIntroductionState extends State<_CardIntroduction> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1A0030), Color(0xFF3D0066)],
+          colors: [WwColors.bgDeep, Color(0xFF160F1E)],
         ),
       ),
       child: SafeArea(
@@ -156,32 +138,22 @@ class _CardIntroductionState extends State<_CardIntroduction> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // ── Wand animation ─────────────────────────────────────────
               const WizardHeroWidget(),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 44),
 
               Text(
-                'Welcome to the Inner Circle.',
+                'Welcome to the\nInner Circle.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.amber.shade200,
-                  height: 1.3,
-                ),
+                style: WwText.displayLarge(),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
               Text(
                 "I'm the Wine Wizard, and I'm here to make sure you never drink a boring bottle again.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withValues(alpha: 0.82),
-                  height: 1.6,
-                ),
+                style: WwText.bodyLarge(color: WwColors.textSecondary),
               ),
             ],
           ),
@@ -205,7 +177,7 @@ class _CardPalatePromise extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF1B003A), Color(0xFF2E004F)],
+          colors: [WwColors.bgDeep, WwColors.bgSurface],
         ),
       ),
       child: SafeArea(
@@ -214,7 +186,6 @@ class _CardPalatePromise extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Live Palate Dial preview at neutral settings
               SizedBox(
                 width: 220,
                 height: 220,
@@ -229,14 +200,9 @@ class _CardPalatePromise extends StatelessWidget {
               const SizedBox(height: 36),
 
               Text(
-                "I'll help you speak 'Wine' like a pro.",
+                "I'll help you speak\n'Wine' like a pro.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.amber.shade200,
-                  height: 1.3,
-                ),
+                style: WwText.headlineLarge(),
               ),
 
               const SizedBox(height: 16),
@@ -244,29 +210,24 @@ class _CardPalatePromise extends StatelessWidget {
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white.withValues(alpha: 0.82),
-                    height: 1.6,
-                  ),
-                  children: const [
-                    TextSpan(text: 'Whether you like it '),
+                  style: WwText.bodyLarge(color: WwColors.textSecondary),
+                  children: [
+                    const TextSpan(text: 'Whether you like it '),
                     TextSpan(
                       text: 'Zingy (High Acidity)',
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: Colors.amberAccent,
-                      ),
+                      style: WwText.bodyLarge(color: WwColors.gold)
+                          .copyWith(fontStyle: FontStyle.italic),
                     ),
-                    TextSpan(text: ' or '),
+                    const TextSpan(text: ' or '),
                     TextSpan(
                       text: 'Grippy (High Tannin)',
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: Colors.amberAccent,
-                      ),
+                      style: WwText.bodyLarge(color: WwColors.gold)
+                          .copyWith(fontStyle: FontStyle.italic),
                     ),
-                    TextSpan(text: ", we'll find your perfect match."),
+                    TextSpan(
+                      text: ", we'll find your perfect match.",
+                      style: WwText.bodyLarge(color: WwColors.textSecondary),
+                    ),
                   ],
                 ),
               ),
@@ -301,10 +262,8 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _glow = Tween<double>(
-      begin: 0.2,
-      end: 0.7,
-    ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeInOut));
+    _glow = Tween<double>(begin: 0.2, end: 0.65)
+        .animate(CurvedAnimation(parent: _anim, curve: Curves.easeInOut));
   }
 
   @override
@@ -320,7 +279,7 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [Color(0xFF1A0030), Color(0xFF3D0066)],
+          colors: [WwColors.bgDeep, WwColors.bgSurface],
         ),
       ),
       child: SafeArea(
@@ -329,7 +288,7 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Glowing map pin
+              // Pulsing gold map pin
               AnimatedBuilder(
                 animation: _glow,
                 builder: (context, child) => Container(
@@ -339,11 +298,9 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.greenAccent.withValues(
-                          alpha: _glow.value,
-                        ),
-                        blurRadius: 40,
-                        spreadRadius: 10,
+                        color: WwColors.gold.withValues(alpha: _glow.value),
+                        blurRadius: 44,
+                        spreadRadius: 8,
                       ),
                     ],
                   ),
@@ -353,21 +310,17 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
                   child: Icon(
                     Icons.location_on_rounded,
                     size: 80,
-                    color: Colors.greenAccent,
+                    color: WwColors.gold,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 44),
 
               Text(
                 'Best of all?',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.amber.shade200,
-                ),
+                style: WwText.headlineLarge(),
               ),
 
               const SizedBox(height: 16),
@@ -375,11 +328,7 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
               Text(
                 "I'll show you exactly which shop down the street is holding your bottle.\n\nReady to begin your quest?",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.white.withValues(alpha: 0.82),
-                  height: 1.6,
-                ),
+                style: WwText.bodyLarge(color: WwColors.textSecondary),
               ),
             ],
           ),

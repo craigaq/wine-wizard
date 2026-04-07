@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class AgeGateScreen extends StatelessWidget {
   final VoidCallback onConfirmed;
@@ -7,12 +8,13 @@ class AgeGateScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: WwColors.bgDeep,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1A0030), Color(0xFF3D0066)],
+            colors: [WwColors.bgDeep, WwColors.bgSurface],
           ),
         ),
         child: SafeArea(
@@ -22,41 +24,26 @@ class AgeGateScreen extends StatelessWidget {
               children: [
                 const Spacer(flex: 2),
 
-                // Crest / visual
+                // Crest — gold ring with wine glass
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 104,
+                  height: 104,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.amber.shade300,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.amber.shade300.withValues(alpha: 0.25),
-                        blurRadius: 24,
-                        spreadRadius: 4,
-                      ),
-                    ],
+                    border: Border.all(color: WwColors.gold, width: 2),
+                    boxShadow: WwDecorations.goldGlow(),
                   ),
                   child: const Center(
-                    child: Text('🍷', style: TextStyle(fontSize: 48)),
+                    child: Text('🍷', style: TextStyle(fontSize: 50)),
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 36),
 
                 Text(
                   'Welcome to\nWine Wizard',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber.shade200,
-                    height: 1.25,
-                    letterSpacing: 0.5,
-                  ),
+                  style: WwText.displayLarge(),
                 ),
 
                 const SizedBox(height: 20),
@@ -64,48 +51,39 @@ class AgeGateScreen extends StatelessWidget {
                 Text(
                   'The cellar is reserved for adults.\nPlease confirm your age before entering.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white.withValues(alpha: 0.75),
-                    height: 1.5,
-                  ),
+                  style: WwText.bodyLarge(color: WwColors.textSecondary),
                 ),
 
                 const Spacer(flex: 2),
 
                 // Confirm CTA
-                SizedBox(
+                Container(
                   width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: WwDecorations.goldGlow(),
+                  ),
                   child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.amber.shade600,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                     onPressed: onConfirmed,
-                    child: const Text('Yes, I\'m of Legal Drinking Age'),
+                    child: Text(
+                      "Yes, I'm of Legal Drinking Age",
+                      style: WwText.labelLarge(color: Colors.black),
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 14),
 
-                // Decline — leads nowhere, as expected for a compliance gate
+                // Decline
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.white38,
+                      foregroundColor: WwColors.textDisabled,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     onPressed: () => _showUnderageDialog(context),
-                    child: const Text('No, I\'m Under Age'),
+                    child: const Text("No, I'm Under Age"),
                   ),
                 ),
 
@@ -114,11 +92,7 @@ class AgeGateScreen extends StatelessWidget {
                 Text(
                   'Legal drinking age varies by country.\nDrink responsibly.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.35),
-                    height: 1.5,
-                  ),
+                  style: WwText.bodySmall(color: WwColors.textDisabled),
                 ),
 
                 const SizedBox(height: 16),
@@ -134,15 +108,21 @@ class AgeGateScreen extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Come Back Later'),
-        content: const Text(
-          'The Wine Wizard will be here when you\'re ready. '
-          'Until then, stay curious! 🧙‍♂️',
+        backgroundColor: WwColors.bgElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: WwColors.borderSubtle),
+        ),
+        title: Text('Come Back Later', style: WwText.titleMedium()),
+        content: Text(
+          "The Wine Wizard will be here when you're ready. "
+          "Until then, stay curious! 🧙‍♂️",
+          style: WwText.bodyMedium(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text('OK', style: WwText.labelLarge(color: WwColors.gold)),
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/wine_recommendation.dart';
+import '../theme/app_theme.dart';
 
 // ---------------------------------------------------------------------------
 // Palate Paradox alert (dry preference vs sweet-pairing food) — bottom sheet
@@ -18,35 +19,44 @@ Future<void> showPalateParadoxSheet(
     isScrollControlled: true,
     builder: (context) {
       return Container(
-        decoration: BoxDecoration(
-          color: Colors.deepPurple.shade900,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+        decoration: const BoxDecoration(
+          color: WwColors.bgElevated,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(
+            top: BorderSide(color: WwColors.borderMedium, width: 1),
+          ),
         ),
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🧙‍♂️', style: TextStyle(fontSize: 40)),
-            const SizedBox(height: 10),
-            const Text(
-              'Palate Paradox',
-              style: TextStyle(
-                color: Colors.amber,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: WwColors.borderMedium,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
+
+            const Text('🧙‍♂️', style: TextStyle(fontSize: 40)),
+            const SizedBox(height: 10),
+
+            Text(
+              'Palate Paradox',
+              style: WwText.headlineMedium(color: WwColors.gold),
+            ),
             const SizedBox(height: 12),
+
             Text(
               paradox.message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                height: 1.45,
-              ),
+              style: WwText.bodyMedium(),
             ),
             const SizedBox(height: 24),
+
             ...paradox.options.map((opt) {
               final action = opt['action']!;
               final label  = opt['label']!;
@@ -56,25 +66,21 @@ Future<void> showPalateParadoxSheet(
                 child: SizedBox(
                   width: double.infinity,
                   child: isRecommended
-                      ? FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.amber.shade700,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                      ? Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: WwDecorations.goldGlow(),
                           ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            onResolved(action);
-                          },
-                          child: Text(label,
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                          child: FilledButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              onResolved(action);
+                            },
+                            child: Text(label,
+                                style: WwText.labelLarge(color: Colors.black)),
+                          ),
                         )
                       : OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white38),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
                           onPressed: () {
                             Navigator.of(context).pop();
                             onResolved(action);
@@ -92,7 +98,7 @@ Future<void> showPalateParadoxSheet(
 }
 
 // ---------------------------------------------------------------------------
-// Palate conflict alert (attribute-level mismatch)
+// Palate conflict alert (attribute-level mismatch) — dialog
 // ---------------------------------------------------------------------------
 
 Future<void> showWizardConflictAlert(
@@ -105,11 +111,12 @@ Future<void> showWizardConflictAlert(
     barrierDismissible: false,
     builder: (context) {
       return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          alert.title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        backgroundColor: WwColors.bgElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: WwColors.borderMedium),
         ),
+        title: Text(alert.title, style: WwText.titleLarge()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -118,24 +125,26 @@ Future<void> showWizardConflictAlert(
             Text(
               alert.message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
+              style: WwText.bodyMedium(),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text("No, I'm Stubborn"),
+            child: Text(
+              "No, I'm Stubborn",
+              style: WwText.bodyMedium(color: WwColors.textSecondary),
+            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[800]),
+          FilledButton(
             onPressed: () {
               onAdjust(alert.suggestedValue);
               Navigator.of(context).pop();
             },
-            child: const Text(
+            child: Text(
               'Trust the Wizard',
-              style: TextStyle(color: Colors.white),
+              style: WwText.labelLarge(color: Colors.black),
             ),
           ),
         ],
@@ -160,61 +169,66 @@ Future<void> showGastroClashAlert(
     enableDrag: false,
     builder: (context) {
       return Container(
-        decoration: BoxDecoration(
-          color: Colors.indigo[900],
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+        decoration: const BoxDecoration(
+          color: WwColors.bgElevated,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(
+            top: BorderSide(color: WwColors.borderMedium, width: 1),
+          ),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: WwColors.borderMedium,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
             Text(
               clash.title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.amber,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: WwText.headlineMedium(color: WwColors.gold),
             ),
             const SizedBox(height: 12),
+
             Text(
               clash.message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                height: 1.4,
-              ),
+              style: WwText.bodyMedium(),
             ),
             const SizedBox(height: 24),
+
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white54),
-                    ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text(
-                      "I'll risk it!",
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    child: const Text("I'll risk it!"),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber[700],
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: WwDecorations.goldGlow(),
                     ),
-                    onPressed: () {
-                      onApply(clash.newValues);
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text(
-                      'Trust the Wizard',
-                      style: TextStyle(color: Colors.black),
+                    child: FilledButton(
+                      onPressed: () {
+                        onApply(clash.newValues);
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        'Trust the Wizard',
+                        style: WwText.labelLarge(color: Colors.black),
+                      ),
                     ),
                   ),
                 ),
