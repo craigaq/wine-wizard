@@ -254,7 +254,7 @@ def run_merchant_middleware(
 
     for candidate in candidates:
         m     = candidate.merchant
-        price = m.price_aud
+        price = candidate.price_aud
         dist  = candidate.distance_km
 
         # --- Check 1: Unicorn Vintage Trap ---
@@ -297,7 +297,7 @@ def run_merchant_middleware(
     # the cheapest option (best value) is always first — i.e. the best_match
     # per tier is the lowest-price option that passed the budget ceiling filter.
     for t in (1, 2, 3):
-        tier_groups[t].sort(key=lambda c: c.merchant.price_aud)
+        tier_groups[t].sort(key=lambda c: c.price_aud)
 
     log.info("[Triple-Region] Tier breakdown (sorted cheapest-first per tier):")
     for t in (1, 2, 3):
@@ -307,15 +307,15 @@ def run_merchant_middleware(
         log.info("  Tier %d (%s — %s): %d result(s)", t, label, hint, len(items))
         for c in items:
             log.info("    %-35s  $%.2f  rank=%.2f  region=%s",
-                     c.merchant.name, c.merchant.price_aud, c.score, c.region)
+                     c.merchant.name, c.price_aud, c.score, c.region)
 
     # --- Pricing Precedent: suppress Tier 3 if too expensive vs Tier 1 ---
     tier_3_suppressed  = False
     suppression_reason = ""
 
     if tier_groups[1] and tier_groups[3] and not show_global_tier:
-        cheapest_t1 = min(c.merchant.price_aud for c in tier_groups[1])
-        cheapest_t3 = min(c.merchant.price_aud for c in tier_groups[3])
+        cheapest_t1 = min(c.price_aud for c in tier_groups[1])
+        cheapest_t3 = min(c.price_aud for c in tier_groups[3])
         ratio = cheapest_t3 / cheapest_t1 if cheapest_t1 > 0 else 0.0
         log.info("[Pricing Precedent] Tier1_min=$%.2f  Tier3_min=$%.2f  ratio=%.2fx  "
                  "threshold=%.1fx", cheapest_t1, cheapest_t3, ratio,
@@ -348,7 +348,7 @@ def run_merchant_middleware(
         badge = "Call to Confirm" if c.needs_verification else "Trusted"
         log.info("  %d. T%d %-35s  rank=%-7.2f  $%.2f  %.2f km  %s",
                  i, c.tier, c.merchant.name, c.score,
-                 c.merchant.price_aud, c.distance_km, badge)
+                 c.price_aud, c.distance_km, badge)
 
     log.info("[Middleware] run_merchant_middleware — END")
     log.info("=" * 60)

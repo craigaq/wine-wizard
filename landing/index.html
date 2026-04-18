@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wine Wizard | Discover Your Perfect Palate</title>
+    <style>
+        :root {
+            --primary-color: #4a0e0e; /* Deep Wine */
+            --accent-color: #d4af37;  /* Gold */
+            --bg-color: #fafafa;
+            --text-color: #2d2d2d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 3rem 1rem;
+            text-align: center;
+        }
+
+        .hero {
+            padding: 5rem 1.5rem;
+            text-align: center;
+            background: linear-gradient(135deg, #4a0e0e 0%, #2a0505 100%);
+            color: white;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-color);
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            color: #000;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 4rem 1.5rem; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--primary-color);
+        }
+
+        footer {
+            background: #1a1a1a;
+            color: #888;
+            padding: 3rem 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        footer a { color: var(--accent-color); text-decoration: none; margin: 0 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>WINE WIZARD</h1>
+        <p>Your Personal Sommelier, Reimagined.</p>
+    </header>
+
+    <section class="hero">
+        <div class="badge">Coming Soon to Adelaide</div>
+        <h2>The End of Aisle Anxiety.</h2>
+        <p style="max-width: 600px; margin: 1rem auto;">Using advanced AI to match your unique palate to thousands of local labels available at your favorite merchants.</p>
+    </section>
+
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <h3>The Palate Dial</h3>
+                <p>Fine-tune acidity, body, and tannin. Our engine matches your profile to real-world inventory.</p>
+            </div>
+            <div class="card">
+                <h3>Local Availability</h3>
+                <p>Built for the Australian market. Find exactly what's in stock at BWS and Dan Murphy's.</p>
+            </div>
+            <div class="card">
+                <h3>Smart Journal</h3>
+                <p>Scan a label to log your thoughts. The more you drink, the smarter the Wizard gets.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Wine Wizard App. Developed in South Australia.</p>
+        <p style="margin-top: 15px;">
+            <a href="privacy.html">Privacy Policy</a> |
+            <a href="mailto:hello@winewizardapp.com">Contact</a>
+        </p>
+    </footer>
+</body>
+</html>

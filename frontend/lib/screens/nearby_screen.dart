@@ -412,6 +412,41 @@ class _WineComparisonCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
               child: Column(
                 children: [
+                  if (best.needsVerification) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: WwColors.warning.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: WwColors.warning.withValues(alpha: 0.45),
+                            width: 1),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 15, color: WwColors.warning),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Stock not confirmed. This retailer\'s live inventory '
+                              'couldn\'t be verified. Call ahead or use the search '
+                              'link below before visiting.',
+                              style: TextStyle(
+                                color: WwColors.warning,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   if (best.websiteUrl.isNotEmpty)
                     SizedBox(
                       width: double.infinity,
@@ -419,10 +454,14 @@ class _WineComparisonCard extends StatelessWidget {
                         onPressed: () => _openUrl(best.websiteUrl),
                         icon: const Icon(Icons.open_in_new, size: 16),
                         label: Text(
-                          'Shop ${best.name.split(' ').first} Online',
+                          best.needsVerification
+                              ? 'Search ${best.name.split(' ').first} (stock unconfirmed)'
+                              : 'Shop ${best.name.split(' ').first} Online',
                         ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: color,
+                          backgroundColor: best.needsVerification
+                              ? WwColors.warning
+                              : color,
                           foregroundColor: Colors.white,
                           padding:
                               const EdgeInsets.symmetric(vertical: 14),

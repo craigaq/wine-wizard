@@ -25,6 +25,7 @@ from term_mapping import TECHNICAL_TO_UI
 from interceptor import run_recommendation_middleware, run_merchant_middleware, TieredMerchantResults
 from local_sourcing import TIER_LABELS, TIER_REGION_HINTS
 from currency import convert_from_aud, convert_to_aud, lat_lng_to_currency, get_info as get_currency_info
+from affiliate_config import build_affiliate_url
 
 app = FastAPI(title="Wine Wizard API")
 
@@ -318,9 +319,16 @@ def recommend(req: RecommendRequest):
 def _merchant_response(r, currency_code: str) -> MerchantResponse:
     """Build a MerchantResponse from a MerchantResult, with price converted to currency_code."""
     info = get_currency_info(currency_code)
-    # Build deep-link search URL by substituting the brand name into the template.
+    # Build the destination search URL first, then wrap with affiliate tracking.
     template = r.merchant.search_url_template
-    website_url = template.replace("{brand}", urllib.parse.quote(r.brand)) if template else ""
+    search_url = template.replace("{brand}", urllib.parse.quote(r.brand)) if template else ""
+    aff_template = r.merchant.affiliate_url_template.replace("{brand}", urllib.parse.quote(r.brand)) \
+        if r.merchant.affiliate_url_template else ""
+    website_url = build_affiliate_url(
+        commercial_group=r.merchant.commercial_group,
+        destination_url=search_url,
+        affiliate_url_template=aff_template,
+    )
     return MerchantResponse(
         name=r.merchant.name,
         address=r.merchant.address,
@@ -329,7 +337,7 @@ def _merchant_response(r, currency_code: str) -> MerchantResponse:
         tier=r.tier,
         tier_label=TIER_LABELS.get(r.tier, "Unknown"),
         distance_km=r.distance_km,
-        price_local=convert_from_aud(r.merchant.price_aud, currency_code),
+        price_local=convert_from_aud(r.price_aud, currency_code),
         currency_code=info.code,
         currency_symbol=info.symbol,
         website_url=website_url,

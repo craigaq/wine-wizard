@@ -139,6 +139,54 @@ _REDS: list[WineProfile] = [
         # Herbaceous green-pepper terpenes (pyrazines) similar to Cab Franc;
         # medium tannin, medium-low acidity.  Niche sourcing test case.
     ),
+
+    # Bordeaux's most aromatic red; hallmark of Loire & Friuli
+    WineProfile(
+        "Cabernet Franc", sku_id="WW-CF01",
+        acidity_ph=3.35, body=3.0, tannin_structure=3, aromatic_intensity=8,
+        abv_percentage=13.0, residual_sugar_gl=2.0,
+        location_tag="National",        # Coonawarra & Margaret River produce respected Australian examples
+    ),
+
+    # Barolo/Barbaresco grape; extreme tannin & acid; ages for decades
+    WineProfile(
+        "Nebbiolo", sku_id="WW-NB01",
+        acidity_ph=3.25, body=4.5, tannin_structure=5, aromatic_intensity=8,
+        abv_percentage=14.0, residual_sugar_gl=2.0,
+        location_tag="International",   # Langhe hills, Piedmont Italy (Barolo & Barbaresco)
+    ),
+
+    # Sicily's flagship red; fruit-forward with moderate tannin
+    WineProfile(
+        "Nero d'Avola", sku_id="WW-NA01",
+        acidity_ph=3.45, body=4.0, tannin_structure=3, aromatic_intensity=8,
+        abv_percentage=14.0, residual_sugar_gl=3.0,
+        location_tag="International",   # Sicily Italy
+    ),
+
+    # Piedmont workhorse; naturally low tannin, very high acid
+    WineProfile(
+        "Barbera", sku_id="WW-BA01",
+        acidity_ph=3.15, body=3.0, tannin_structure=2, aromatic_intensity=7,
+        abv_percentage=13.5, residual_sugar_gl=2.0,
+        location_tag="International",   # Asti & Alba, Piedmont Italy
+    ),
+
+    # Beaujolais grape; ultra-light, juicy, low tannin
+    WineProfile(
+        "Gamay", sku_id="WW-GM01",
+        acidity_ph=3.40, body=2.0, tannin_structure=2, aromatic_intensity=7,
+        abv_percentage=12.5, residual_sugar_gl=2.0,
+        location_tag="International",   # Beaujolais France
+    ),
+
+    # GSM's brooding anchor; earthy, meaty, very full-bodied
+    WineProfile(
+        "Mourvèdre", sku_id="WW-MV01",
+        acidity_ph=3.50, body=4.5, tannin_structure=4, aromatic_intensity=7,
+        abv_percentage=14.5, residual_sugar_gl=2.0,
+        location_tag="Local",           # McLaren Vale SA produces world-class Mourvèdre
+    ),
 ]
 
 #
@@ -228,6 +276,54 @@ _WHITES: list[WineProfile] = [
         location_tag="International",   # Friuli Italy & Colchagua Valley Chile
         # Rounder, less grassy than Sauvignon Blanc; similar crisp acidity
         # (score ≈ 3.33) but lower aromatic intensity.
+    ),
+
+    # Galicia's signature; saline minerality, high acid, stone fruit
+    WineProfile(
+        "Albariño", sku_id="WW-AL01",
+        acidity_ph=3.10, body=2.0, tannin_structure=1, aromatic_intensity=7,
+        abv_percentage=12.5, residual_sugar_gl=2.0,
+        location_tag="International",   # Rías Baixas, Galicia Spain
+    ),
+
+    # Hunter Valley icon; waxy, low-acid, ages brilliantly
+    WineProfile(
+        "Semillon", sku_id="WW-SE01",
+        acidity_ph=3.10, body=2.5, tannin_structure=1, aromatic_intensity=5,
+        abv_percentage=11.0, residual_sugar_gl=2.0,
+        location_tag="National",        # Hunter Valley NSW is the global benchmark for Semillon
+    ),
+
+    # Sardinian/Provençal; crisp citrus, herbal lift, sea-spray finish
+    WineProfile(
+        "Vermentino", sku_id="WW-VE01",
+        acidity_ph=3.20, body=2.0, tannin_structure=1, aromatic_intensity=7,
+        abv_percentage=12.5, residual_sugar_gl=2.0,
+        location_tag="Local",           # Adelaide Hills & McLaren Vale SA growing reputation
+    ),
+
+    # Southern Italian aromatic; honeyed texture, nutty complexity
+    WineProfile(
+        "Fiano", sku_id="WW-FI01",
+        acidity_ph=3.20, body=3.0, tannin_structure=1, aromatic_intensity=8,
+        abv_percentage=13.0, residual_sugar_gl=2.0,
+        location_tag="Local",           # Adelaide Hills SA leads Australian Fiano
+    ),
+
+    # Rhône Valley heavyweight white; waxy, full body, low acid
+    WineProfile(
+        "Marsanne", sku_id="WW-MA01",
+        acidity_ph=3.45, body=3.5, tannin_structure=1, aromatic_intensity=6,
+        abv_percentage=13.5, residual_sugar_gl=2.0,
+        location_tag="National",        # Goulburn Valley VIC (Tahbilk) is the iconic Australian expression
+    ),
+
+    # Argentina's floral white; extraordinarily aromatic despite being dry
+    WineProfile(
+        "Torrontés", sku_id="WW-TO01",
+        acidity_ph=3.10, body=2.0, tannin_structure=1, aromatic_intensity=10,
+        abv_percentage=13.0, residual_sugar_gl=4.0,
+        location_tag="International",   # Salta & Cafayate, Argentina
     ),
 ]
 
