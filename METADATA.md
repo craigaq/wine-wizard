@@ -1,38 +1,39 @@
-# Wine Wizard — App Store Metadata
+# Cellar Sage — App Store Metadata
 
-_Last updated: 2026-03-16_
+_Last updated: 2026-04-24_
 
 ---
 
 ## Headline
 
-Wine Wizard: Your Pocket Sommelier for the Local Bottle Shop. 🧙‍♂️🍇
+Cellar Sage: Algorithmic Wine Guidance for the Real World.
 
 ## Subtitle
 
-Stop guessing. Start sipping. Find the perfect wine near you in seconds.
+Stop guessing. Start sipping. Surgical palate matching at your local bottle shop.
 
 ## Description
 
-Ever stood in a wine aisle feeling completely overwhelmed? You want something "smooth," but all you see are labels mentioning "high tannins" and "terroir."
+Ever stood in a wine aisle feeling completely overwhelmed? You want something smooth, but all you see are labels mentioning "high tannins" and "terroir."
 
-**Enter the Wine Wizard.**
+**Enter Cellar Sage.**
 
-We've stripped away the snobbery to help you find wines you'll actually love, based on your own unique palate. No formal education required — just your taste buds and a little bit of wizardry.
+We've stripped away the snobbery and replaced subjective crowdsourcing with objective algorithmic matching — built on your unique palate, not someone else's opinion.
 
 ### HOW IT WORKS
 
-1. **The Wizard Quiz:** Answer a few simple questions. Do you like it chilled? Bubbles or still? Fruity or earthy?
-2. **The Palate Dial:** See your tastes visualized. We'll teach you the "pro" terms (like *Tannin* and *Acidity*) while keeping things simple (like *Grip* and *Zing*).
-3. **Gastro-Match:** Telling the Wizard what's for dinner? We'll adjust your profile to ensure your wine and food don't just meet — they dance.
-4. **Hyper-Local Sourcing:** We don't just recommend a wine; we tell you exactly which shop within 5km of you has it on the shelf right now.
+1. **The Palate Quiz:** Answer a few simple questions about taste, texture, and weight. No wine education required.
+2. **The Palate Dial:** See your preferences visualised across Acidity, Body, Tannin, and Aromatics — in plain English.
+3. **Gastro-Match:** Tell the Sage what's for dinner. We'll check for clashes and propose wines that work with the food, not against it.
+4. **Hyper-Local Sourcing:** We don't just recommend a wine — we find which shop within 5km of you has it available right now.
 
 ### FEATURES
 
-- **The Wine Journal:** Rate your bottles to make the Wizard even smarter.
-- **No Snobbery Zone:** Expert advice delivered in plain English.
-- **Support Local:** We prioritize independent local merchants over big-box retailers.
+- **Objective Matching:** Algorithm-driven results, not star ratings from strangers
+- **No Snobbery Zone:** Expert logic delivered in plain English
+- **Support Local:** Independent merchants surface alongside national retailers
+- **Gastro-Clash Detection:** Surfaces incompatible food and wine combinations before you commit
 
 ---
 
-**Stop buying wine based on a "pretty label." Download Wine Wizard and find your new favorite bottle today!**
+**Stop buying wine based on a pretty label. Download Cellar Sage and drink with confidence.**
