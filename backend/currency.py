@@ -1,4 +1,4 @@
-"""Currency support for Wine Wizard.
+"""Currency support for Cellar Sage.
 
 All catalog prices are stored in AUD (Australian Dollar) as the base currency.
 This module handles exchange rates, lat/lng → currency detection, and

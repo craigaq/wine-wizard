@@ -1,5 +1,5 @@
 """
-Wine Wizard — Mock Wine Database
+Cellar Sage — Mock Wine Database
 =================================
 Authoritative wine catalog built from the Enhanced Data Schema.
 

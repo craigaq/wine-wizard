@@ -7,11 +7,11 @@ library;
 
 import 'dart:math' as math;
 
-import 'package:wine_wizard/stubs/chime_stub.dart'
-    if (dart.library.html) 'package:wine_wizard/stubs/chime_web.dart';
+import 'package:cellar_sage/stubs/chime_stub.dart'
+    if (dart.library.html) 'package:cellar_sage/stubs/chime_web.dart';
 
 import 'package:flutter/material.dart';
-import 'package:wine_wizard/theme/app_theme.dart';
+import 'package:cellar_sage/theme/app_theme.dart';
 
 // ---------------------------------------------------------------------------
 // Cartoon data for each attribute
@@ -206,10 +206,10 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                         colors: [WwColors.bgElevated, WwColors.bgSurface],
                       ),
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: WwColors.gold, width: 1.5),
+                      border: Border.all(color: WwColors.violet, width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                          color: WwColors.gold.withValues(alpha: 0.30),
+                          color: WwColors.violet.withValues(alpha: 0.30),
                           blurRadius: 28,
                           spreadRadius: 2,
                         ),
@@ -250,7 +250,7 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                               key: ValueKey(widget.value),
                               textAlign: TextAlign.center,
                               style: WwText.witQuote(
-                                color: WwColors.gold.withValues(alpha: 0.85),
+                                color: WwColors.violet.withValues(alpha: 0.85),
                               ),
                             ),
                           ),
@@ -342,7 +342,7 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                 width: sel ? 64 : 54,
                 height: sel ? 84 : 72,
                 decoration: BoxDecoration(
-                  color: sel ? WwColors.gold : WwColors.bgSurface,
+                  color: sel ? WwColors.violet : WwColors.bgSurface,
                   borderRadius: BorderRadius.circular(18),
                   border: sel
                       ? null
@@ -350,7 +350,7 @@ class _MagicPaletteStepState extends State<MagicPaletteStep>
                   boxShadow: sel
                       ? [
                           BoxShadow(
-                            color: WwColors.gold.withValues(alpha: 0.45),
+                            color: WwColors.violet.withValues(alpha: 0.45),
                             blurRadius: 14,
                             spreadRadius: 2,
                           ),

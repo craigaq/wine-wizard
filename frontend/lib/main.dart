@@ -8,19 +8,19 @@ import 'theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(const WineWizardApp());
+  runApp(const CellarSageApp());
 }
 
 enum _AppStage { ageGate, onboarding, quiz }
 
-class WineWizardApp extends StatefulWidget {
-  const WineWizardApp({super.key});
+class CellarSageApp extends StatefulWidget {
+  const CellarSageApp({super.key});
 
   @override
-  State<WineWizardApp> createState() => _WineWizardAppState();
+  State<CellarSageApp> createState() => _CellarSageAppState();
 }
 
-class _WineWizardAppState extends State<WineWizardApp> {
+class _CellarSageAppState extends State<CellarSageApp> {
   _AppStage _stage = _AppStage.ageGate;
 
   void _advance() {
@@ -32,7 +32,7 @@ class _WineWizardAppState extends State<WineWizardApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Wine Wizard',
+      title: 'Cellar Sage',
       debugShowCheckedModeBanner: false,
       theme: WwTheme.dark(),
       darkTheme: WwTheme.dark(),

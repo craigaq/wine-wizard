@@ -1,8 +1,8 @@
 """
-Affiliate tracking configuration for Wine Wizard.
+Affiliate tracking configuration for Cellar Sage.
 
 UTM tracking is applied to all deep-links immediately — merchants can see
-Wine Wizard referral traffic in their own analytics from day one.
+Cellar Sage referral traffic in their own analytics from day one.
 
 Affiliate network URLs replace the direct search link once credentials
 are obtained from the merchant's affiliate program.  Set the relevant
@@ -30,14 +30,14 @@ from urllib.parse import quote
 # ---------------------------------------------------------------------------
 
 UTM_PARAMS = {
-    "utm_source":   "winewizard",
+    "utm_source":   "cellarsage",
     "utm_medium":   "referral",
     "utm_campaign": "wine_recommendation",
 }
 
 
 def append_utm(url: str) -> str:
-    """Append Wine Wizard UTM parameters to any URL."""
+    """Append Cellar Sage UTM parameters to any URL."""
     if not url:
         return url
     separator = "&" if "?" in url else "?"

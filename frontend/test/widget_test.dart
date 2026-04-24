@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wine_wizard/main.dart';
+import 'package:cellar_sage/main.dart';
 
 void main() {
   testWidgets('App renders smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const WineWizardApp());
-    expect(find.text('Wine Wizard'), findsOneWidget);
+    await tester.pumpWidget(const CellarSageApp());
+    expect(find.text('Cellar Sage'), findsOneWidget);
   });
 }

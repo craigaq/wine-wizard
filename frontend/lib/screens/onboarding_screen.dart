@@ -80,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           color: active
-                              ? WwColors.gold
+                              ? WwColors.violet
                               : WwColors.borderMedium,
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -95,7 +95,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: WwDecorations.goldGlow(),
+                      boxShadow: WwDecorations.violetGlow(),
                     ),
                     child: FilledButton(
                       onPressed: _next,
@@ -151,7 +151,7 @@ class _CardIntroduction extends StatelessWidget {
               const SizedBox(height: 18),
 
               Text(
-                "I'm the Wine Wizard, and I'm here to make sure you never drink a boring bottle again.",
+                "I'm the Cellar Sage, and I'm here to make sure you never drink a boring bottle again.",
                 textAlign: TextAlign.center,
                 style: WwText.bodyLarge(color: WwColors.textSecondary),
               ),
@@ -215,13 +215,13 @@ class _CardPalatePromise extends StatelessWidget {
                     const TextSpan(text: 'Whether you like it '),
                     TextSpan(
                       text: 'Zingy (High Acidity)',
-                      style: WwText.bodyLarge(color: WwColors.gold)
+                      style: WwText.bodyLarge(color: WwColors.violet)
                           .copyWith(fontStyle: FontStyle.italic),
                     ),
                     const TextSpan(text: ' or '),
                     TextSpan(
                       text: 'Grippy (High Tannin)',
-                      style: WwText.bodyLarge(color: WwColors.gold)
+                      style: WwText.bodyLarge(color: WwColors.violet)
                           .copyWith(fontStyle: FontStyle.italic),
                     ),
                     TextSpan(
@@ -298,7 +298,7 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: WwColors.gold.withValues(alpha: _glow.value),
+                        color: WwColors.violet.withValues(alpha: _glow.value),
                         blurRadius: 44,
                         spreadRadius: 8,
                       ),
@@ -310,7 +310,7 @@ class _CardLocalLegendState extends State<_CardLocalLegend>
                   child: Icon(
                     Icons.location_on_rounded,
                     size: 80,
-                    color: WwColors.gold,
+                    color: WwColors.violet,
                   ),
                 ),
               ),

@@ -51,7 +51,7 @@ from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 from urllib.parse import quote_plus
 
-log = logging.getLogger("wine_wizard.validator")
+log = logging.getLogger("cellar_sage.validator")
 
 # ---------------------------------------------------------------------------
 # Validation result model
@@ -190,8 +190,8 @@ class ScrapingProvider:
 
             headers = {
                 "User-Agent": (
-                    "Mozilla/5.0 (compatible; WineWizardBot/1.0; "
-                    "+https://winewizard.app/bot)"
+                    "Mozilla/5.0 (compatible; CellarSageBot/1.0; "
+                    "+https://cellarsage.app/bot)"
                 ),
                 "Accept": "text/html,application/xhtml+xml",
             }

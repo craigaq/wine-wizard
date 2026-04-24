@@ -1,5 +1,5 @@
 """
-RecommendationService — core scoring engine for Wine Wizard.
+RecommendationService — core scoring engine for Cellar Sage.
 
 Scoring formula
 ---------------

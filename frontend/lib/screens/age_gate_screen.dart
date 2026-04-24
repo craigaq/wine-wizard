@@ -30,8 +30,8 @@ class AgeGateScreen extends StatelessWidget {
                   height: 104,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: WwColors.gold, width: 2),
-                    boxShadow: WwDecorations.goldGlow(),
+                    border: Border.all(color: WwColors.violet, width: 2),
+                    boxShadow: WwDecorations.violetGlow(),
                   ),
                   child: const Center(
                     child: Text('🍷', style: TextStyle(fontSize: 50)),
@@ -41,7 +41,7 @@ class AgeGateScreen extends StatelessWidget {
                 const SizedBox(height: 36),
 
                 Text(
-                  'Welcome to\nWine Wizard',
+                  'Welcome to\nCellar Sage',
                   textAlign: TextAlign.center,
                   style: WwText.displayLarge(),
                 ),
@@ -61,7 +61,7 @@ class AgeGateScreen extends StatelessWidget {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: WwDecorations.goldGlow(),
+                    boxShadow: WwDecorations.violetGlow(),
                   ),
                   child: FilledButton(
                     onPressed: onConfirmed,
@@ -115,14 +115,14 @@ class AgeGateScreen extends StatelessWidget {
         ),
         title: Text('Come Back Later', style: WwText.titleMedium()),
         content: Text(
-          "The Wine Wizard will be here when you're ready. "
+          "The Cellar Sage will be here when you're ready. "
           "Until then, stay curious! 🧙‍♂️",
           style: WwText.bodyMedium(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK', style: WwText.labelLarge(color: WwColors.gold)),
+            child: Text('OK', style: WwText.labelLarge(color: WwColors.violet)),
           ),
         ],
       ),

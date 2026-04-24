@@ -107,7 +107,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(color: WwColors.gold),
+            const CircularProgressIndicator(color: WwColors.violet),
             const SizedBox(height: 16),
             Text(
               "Consulting the Wizard's map…",
@@ -385,7 +385,7 @@ class _WineComparisonCard extends StatelessWidget {
                         if (best.isPartner)
                           _SmallBadge(
                             label: 'Partner',
-                            borderColor: WwColors.gold,
+                            borderColor: WwColors.violet,
                             icon: Icons.verified,
                           ),
                         if (best.isOnlineOnly)
@@ -589,7 +589,7 @@ class _MerchantBottomSheetState extends State<_MerchantBottomSheet> {
                 icon: const Icon(Icons.expand_more, size: 16),
                 label: Text(
                   '${matches.length - 1} more stockist${matches.length - 1 == 1 ? '' : 's'}',
-                  style: WwText.bodyMedium(color: WwColors.gold),
+                  style: WwText.bodyMedium(color: WwColors.violet),
                 ),
               ),
           ],
@@ -680,7 +680,7 @@ class _MerchantRow extends StatelessWidget {
                       const SizedBox(width: 4),
                       _SmallBadge(
                         label: 'Partner',
-                        borderColor: WwColors.gold,
+                        borderColor: WwColors.violet,
                         icon: Icons.verified,
                       ),
                     ],
@@ -714,11 +714,11 @@ class _MerchantRow extends StatelessWidget {
                     child: Row(
                       children: [
                         const Icon(Icons.open_in_new,
-                            size: 12, color: WwColors.gold),
+                            size: 12, color: WwColors.violet),
                         const SizedBox(width: 3),
                         Text(
                           'Shop online',
-                          style: WwText.bodySmall(color: WwColors.gold)
+                          style: WwText.bodySmall(color: WwColors.violet)
                               .copyWith(
                                   decoration: TextDecoration.underline),
                         ),
@@ -936,23 +936,23 @@ class _PricingPrecedentBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: WwColors.bgSurface,
-        border: Border.all(color: WwColors.goldMuted),
+        border: Border.all(color: WwColors.violetMuted),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: WwColors.gold, size: 18),
+          const Icon(Icons.info_outline, color: WwColors.violet, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               "Global Icon hidden — it's significantly pricier than the local option.",
-              style: WwText.bodySmall(color: WwColors.gold),
+              style: WwText.bodySmall(color: WwColors.violet),
             ),
           ),
           const SizedBox(width: 8),
           TextButton(
             onPressed: onShowGlobal,
-            child: Text('Show', style: WwText.bodyMedium(color: WwColors.gold)),
+            child: Text('Show', style: WwText.bodyMedium(color: WwColors.violet)),
           ),
         ],
       ),
@@ -989,7 +989,7 @@ class _GlobalTierToggle extends StatelessWidget {
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: Text('Hide',
-              style: WwText.bodySmall(color: WwColors.gold)),
+              style: WwText.bodySmall(color: WwColors.violet)),
         ),
       ],
     );

@@ -44,7 +44,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 
-log = logging.getLogger("wine_wizard.sourcing")
+log = logging.getLogger("cellar_sage.sourcing")
 
 
 # ---------------------------------------------------------------------------

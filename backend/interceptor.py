@@ -1,5 +1,5 @@
 """
-Wine Wizard — Recommendation Middleware
+Cellar Sage — Recommendation Middleware
 ========================================
 Single intercept layer that sits between the service functions and the
 API response layer.  All three fail-safe checks flow through here in a
@@ -60,7 +60,7 @@ from local_sourcing import (
 )
 from content_generator import TierBlurb, generate_tier_blurbs
 
-log = logging.getLogger("wine_wizard.interceptor")
+log = logging.getLogger("cellar_sage.interceptor")
 
 
 # ---------------------------------------------------------------------------

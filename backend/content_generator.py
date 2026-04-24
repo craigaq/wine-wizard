@@ -1,5 +1,5 @@
 """
-Wine Wizard — Content Generation Middleware
+Cellar Sage — Content Generation Middleware
 ===========================================
 Generates persona-driven, witty and educational blurbs for each
 Triple-Region tier recommendation.

@@ -1,6 +1,6 @@
 /// app_theme.dart
 ///
-/// Wine Wizard design system — "The Cellar" palette.
+/// Cellar Sage design system — "The Sage" palette.
 ///
 /// Single source of truth for all colors, text styles, and the MaterialApp
 /// ThemeData factory. Import this file wherever colors or styles are needed.
@@ -16,38 +16,38 @@ import 'package:google_fonts/google_fonts.dart';
 
 abstract final class WwColors {
   // ── Backgrounds ─────────────────────────────────────────────────────────
-  /// Main scaffold background — near-black with purple undertone, AMOLED-safe
-  static const bgDeep     = Color(0xFF0C0810);
+  /// Main scaffold background — charcoal-grape, AMOLED-safe
+  static const bgDeep     = Color(0xFF0F0F14);
   /// Raised card / surface
-  static const bgSurface  = Color(0xFF160F1E);
+  static const bgSurface  = Color(0xFF16161E);
   /// Top-layer overlays, bottom sheets
-  static const bgElevated = Color(0xFF1E1530);
+  static const bgElevated = Color(0xFF1E1E2C);
 
-  // ── Accent — Cognac Gold ─────────────────────────────────────────────────
-  /// Primary CTA, price hero, active states
-  static const gold       = Color(0xFFC4965A);
-  /// Muted gold for secondary use (currency prefix, inactive)
-  static const goldMuted  = Color(0xFF7A5A34);
-  /// Very faint gold tint for selected-card overlays
-  static const goldTint   = Color(0x14C4965A);  // gold @ 8%
+  // ── Accent — Electric Violet ─────────────────────────────────────────────
+  /// Primary CTA, price hero, active states — 9.2:1 on bgDeep (WCAG AAA)
+  static const violet      = Color(0xFFC3A5FF);
+  /// Muted violet for secondary use (currency prefix, inactive)
+  static const violetMuted = Color(0xFF7B6FA3);
+  /// Very faint violet tint for selected-card overlays
+  static const violetTint  = Color(0x14C3A5FF);  // violet @ 8%
 
-  // ── Accent — Wine Rose ───────────────────────────────────────────────────
-  /// Complementary accent — dusty wine-rose, used sparingly
+  // ── Accent — Sage Rose ───────────────────────────────────────────────────
+  /// Complementary accent — used sparingly
   static const rose       = Color(0xFF7D3E5E);
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  /// Primary text — warm off-white (not stark white)
-  static const textPrimary   = Color(0xFFF5EFE8);
-  /// Secondary text — warm grey for metadata, subtext
-  static const textSecondary = Color(0xFF9A8E85);
+  /// Primary text — pure white, 19.1:1 on bgDeep (WCAG AAA)
+  static const textPrimary   = Color(0xFFFFFFFF);
+  /// Secondary text — cool grey, 6.8:1 on bgDeep (WCAG AA)
+  static const textSecondary = Color(0xFF9499B8);
   /// Disabled / placeholder
-  static const textDisabled  = Color(0xFF5A5250);
+  static const textDisabled  = Color(0xFF5A5860);
 
   // ── Borders & dividers ───────────────────────────────────────────────────
-  static const borderSubtle = Color(0xFF2E2040);
-  static const borderMedium = Color(0xFF3D2F55);
+  static const borderSubtle = Color(0xFF252535);
+  static const borderMedium = Color(0xFF323248);
 
-  // ── Tier colours (richer/deeper versions of the originals) ───────────────
+  // ── Tier colours ────────────────────────────────────────────────────────
   static const tierLocal    = Color(0xFF1A6B4A);  // Local Hero — deep emerald
   static const tierNational = Color(0xFF1A4C8A);  // National Rival — rich blue
   static const tierGlobal   = Color(0xFF5C2E8A);  // Global Icon — deep purple
@@ -93,14 +93,14 @@ abstract final class WwText {
         color: color ?? WwColors.textPrimary,
       );
 
-  /// Wizard wit / quote lines — serif italic
+  /// Sage wit / quote lines — serif italic
   static TextStyle witQuote({Color? color}) =>
       GoogleFonts.cormorantGaramond(
         fontSize: 15,
         fontWeight: FontWeight.w400,
         fontStyle: FontStyle.italic,
         height: 1.5,
-        color: color ?? WwColors.gold,
+        color: color ?? WwColors.violet,
       );
 
   // ── UI — DM Sans (all controls, body, labels) ────────────────────────────
@@ -164,12 +164,12 @@ abstract final class WwText {
         color: color ?? WwColors.textSecondary,
       );
 
-  /// Price hero — large bold gold
+  /// Price hero — large bold violet
   static TextStyle priceHero({Color? color}) =>
       GoogleFonts.dmSans(
         fontSize: 32,
         fontWeight: FontWeight.w700,
-        color: color ?? WwColors.gold,
+        color: color ?? WwColors.violet,
         letterSpacing: -0.5,
       );
 
@@ -178,7 +178,7 @@ abstract final class WwText {
       GoogleFonts.dmSans(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: color ?? WwColors.goldMuted,
+        color: color ?? WwColors.violetMuted,
         letterSpacing: 0.5,
       );
 
@@ -187,7 +187,7 @@ abstract final class WwText {
       GoogleFonts.dmSans(
         fontSize: 11,
         fontStyle: FontStyle.italic,
-        color: color ?? WwColors.goldMuted,
+        color: color ?? WwColors.violetMuted,
         letterSpacing: 0.2,
       );
 }
@@ -225,19 +225,19 @@ abstract final class WwDecorations {
         ),
       );
 
-  /// Wit/quote callout — dark glass treatment
+  /// Sage wit/quote callout — dark glass treatment
   static BoxDecoration witCallout() => BoxDecoration(
-        color: const Color(0xFF1A0C00).withValues(alpha: 0.65),
+        color: const Color(0xFF0F0F20).withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(8),
         border: const Border(
-          left: BorderSide(color: WwColors.gold, width: 3),
+          left: BorderSide(color: WwColors.violet, width: 3),
         ),
       );
 
-  /// Gold-glowing CTA button shadow
-  static List<BoxShadow> goldGlow() => const [
+  /// Violet-glowing CTA button shadow
+  static List<BoxShadow> violetGlow() => const [
         BoxShadow(
-          color: Color(0x33C4965A),
+          color: Color(0x33C3A5FF),
           blurRadius: 24,
           spreadRadius: 0,
           offset: Offset(0, 4),
@@ -255,22 +255,22 @@ abstract final class WwTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: WwColors.bgDeep,
       colorScheme: const ColorScheme.dark(
-        primary:             WwColors.gold,
-        onPrimary:           Colors.black,
-        primaryContainer:    WwColors.bgElevated,   // used by Card, SegmentedButton etc
-        onPrimaryContainer:  WwColors.textPrimary,
-        secondary:           WwColors.rose,
-        onSecondary:         WwColors.textPrimary,
-        secondaryContainer:  WwColors.bgSurface,
+        primary:              WwColors.violet,
+        onPrimary:            Color(0xFF0F0F14),      // dark text on violet — 9.2:1 (WCAG AAA)
+        primaryContainer:     WwColors.bgElevated,
+        onPrimaryContainer:   WwColors.textPrimary,
+        secondary:            WwColors.rose,
+        onSecondary:          WwColors.textPrimary,
+        secondaryContainer:   WwColors.bgSurface,
         onSecondaryContainer: WwColors.textSecondary,
-        surface:             WwColors.bgSurface,
-        onSurface:           WwColors.textPrimary,
-        onSurfaceVariant:    WwColors.textSecondary,
-        surfaceContainerHighest: Color(0xFF241A30), // thumbnail unselected bg
-        error:               WwColors.error,
-        onError:             Colors.white,
-        outline:             WwColors.borderSubtle,
-        outlineVariant:      WwColors.borderMedium,
+        surface:              WwColors.bgSurface,
+        onSurface:            WwColors.textPrimary,
+        onSurfaceVariant:     WwColors.textSecondary,
+        surfaceContainerHighest: Color(0xFF1E1E2C),
+        error:                WwColors.error,
+        onError:              Colors.white,
+        outline:              WwColors.borderSubtle,
+        outlineVariant:       WwColors.borderMedium,
       ),
       useMaterial3: true,
     );
@@ -293,30 +293,30 @@ abstract final class WwTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor:  WwColors.gold,
-          foregroundColor:  Colors.black,
+          backgroundColor: WwColors.violet,
+          foregroundColor: const Color(0xFF0F0F14),  // dark text — 9.2:1 on violet (WCAG AAA)
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: WwText.labelLarge(color: Colors.black),
+          textStyle: WwText.labelLarge(color: const Color(0xFF0F0F14)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: WwColors.gold,
-          side: const BorderSide(color: WwColors.gold),
+          foregroundColor: WwColors.violet,
+          side: const BorderSide(color: WwColors.violet),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: WwText.labelLarge(color: WwColors.gold),
+          textStyle: WwText.labelLarge(color: WwColors.violet),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: WwColors.gold,
-          textStyle: WwText.bodyMedium(color: WwColors.gold),
+          foregroundColor: WwColors.violet,
+          textStyle: WwText.bodyMedium(color: WwColors.violet),
         ),
       ),
       dividerTheme: const DividerThemeData(
@@ -324,17 +324,17 @@ abstract final class WwTheme {
         thickness: 1,
       ),
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor:   WwColors.bgElevated,
+        backgroundColor:      WwColors.bgElevated,
         modalBackgroundColor: WwColors.bgElevated,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: WwColors.gold,
+        color: WwColors.violet,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor:  WwColors.bgSurface,
+        backgroundColor: WwColors.bgSurface,
         side: const BorderSide(color: WwColors.borderSubtle),
         labelStyle: WwText.bodySmall(),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -352,12 +352,12 @@ abstract final class WwTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? Colors.black
+              ? const Color(0xFF0F0F14)
               : WwColors.textDisabled,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? WwColors.gold
+              ? WwColors.violet
               : WwColors.borderSubtle,
         ),
       ),
@@ -365,9 +365,8 @@ abstract final class WwTheme {
         titleTextStyle: WwText.bodyMedium(color: WwColors.textPrimary)
             .copyWith(fontWeight: FontWeight.w500),
         subtitleTextStyle: WwText.bodySmall(),
-        iconColor: WwColors.gold,
+        iconColor: WwColors.violet,
       ),
     );
   }
-
 }

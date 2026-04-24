@@ -46,7 +46,7 @@ Future<void> showPalateParadoxSheet(
 
             Text(
               'Palate Paradox',
-              style: WwText.headlineMedium(color: WwColors.gold),
+              style: WwText.headlineMedium(color: WwColors.violet),
             ),
             const SizedBox(height: 12),
 
@@ -69,7 +69,7 @@ Future<void> showPalateParadoxSheet(
                       ? Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: WwDecorations.goldGlow(),
+                            boxShadow: WwDecorations.violetGlow(),
                           ),
                           child: FilledButton(
                             onPressed: () {
@@ -194,7 +194,7 @@ Future<void> showGastroClashAlert(
             Text(
               clash.title,
               textAlign: TextAlign.center,
-              style: WwText.headlineMedium(color: WwColors.gold),
+              style: WwText.headlineMedium(color: WwColors.violet),
             ),
             const SizedBox(height: 12),
 
@@ -218,7 +218,7 @@ Future<void> showGastroClashAlert(
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: WwDecorations.goldGlow(),
+                      boxShadow: WwDecorations.violetGlow(),
                     ),
                     child: FilledButton(
                       onPressed: () {

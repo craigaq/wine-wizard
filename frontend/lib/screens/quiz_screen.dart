@@ -348,14 +348,14 @@ class _QuizScreenState extends State<QuizScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Wine Wizard', style: WwText.titleLarge()),
+        title: Text('Cellar Sage', style: WwText.titleLarge()),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(3),
           child: LinearProgressIndicator(
             value: (_currentPage + 1) / _totalPages,
             backgroundColor: WwColors.borderSubtle,
-            valueColor: const AlwaysStoppedAnimation<Color>(WwColors.gold),
+            valueColor: const AlwaysStoppedAnimation<Color>(WwColors.violet),
           ),
         ),
       ),
@@ -457,7 +457,7 @@ class _QuizScreenState extends State<QuizScreen> {
           const Text('🍷', style: TextStyle(fontSize: 72)),
           const SizedBox(height: 24),
           Text(
-            'Welcome to\nWine Wizard',
+            'Welcome to\nCellar Sage',
             style: WwText.displayLarge(),
             textAlign: TextAlign.center,
           ),
@@ -649,7 +649,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: selected
-                              ? WwColors.gold
+                              ? WwColors.violet
                               : WwColors.borderSubtle,
                           width: selected ? 2 : 1,
                         ),
@@ -671,7 +671,7 @@ class _QuizScreenState extends State<QuizScreen> {
                           ),
                           if (selected)
                             const Icon(Icons.check_circle,
-                                color: WwColors.gold),
+                                color: WwColors.violet),
                         ],
                       ),
                     ),
@@ -777,7 +777,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     Text('Food Pairing', style: WwText.bodyMedium(color: WwColors.textPrimary)),
                     Text(
                       _foodLabel,
-                      style: WwText.bodyMedium(color: WwColors.gold)
+                      style: WwText.bodyMedium(color: WwColors.violet)
                           .copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -789,7 +789,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     Text('Budget (per bottle)', style: WwText.bodyMedium(color: WwColors.textPrimary)),
                     Text(
                       _selectedBracket.label,
-                      style: WwText.bodyMedium(color: WwColors.gold)
+                      style: WwText.bodyMedium(color: WwColors.violet)
                           .copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -812,7 +812,7 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(color: WwColors.gold),
+            const CircularProgressIndicator(color: WwColors.violet),
             const SizedBox(height: 16),
             Text('Consulting the cellar…', style: WwText.bodyMedium()),
           ],
@@ -913,9 +913,9 @@ class _WineResultCardState extends State<_WineResultCard> {
 
   Color _rankColor() {
     return switch (widget.rank) {
-      1 => WwColors.gold,
+      1 => WwColors.violet,
       2 => WwColors.textSecondary,
-      3 => WwColors.goldMuted,
+      3 => WwColors.violetMuted,
       _ => WwColors.borderMedium,
     };
   }
@@ -925,10 +925,10 @@ class _WineResultCardState extends State<_WineResultCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: WwDecorations.card(
-        borderColor: widget.rank == 1 ? WwColors.gold : null,
+        borderColor: widget.rank == 1 ? WwColors.violet : null,
       ).copyWith(
         border: widget.rank == 1
-            ? Border.all(color: WwColors.gold, width: 1.5)
+            ? Border.all(color: WwColors.violet, width: 1.5)
             : Border.all(color: WwColors.borderSubtle),
       ),
       child: InkWell(
@@ -973,7 +973,7 @@ class _WineResultCardState extends State<_WineResultCard> {
                         ),
                         Text(
                           'Match: ${(widget.wine.score * 100).toStringAsFixed(1)}%',
-                          style: WwText.bodySmall(color: WwColors.goldMuted),
+                          style: WwText.bodySmall(color: WwColors.violetMuted),
                         ),
                       ],
                     ),
@@ -1005,7 +1005,7 @@ class _WineResultCardState extends State<_WineResultCard> {
                     const SizedBox(width: 8),
                     Text(
                       'Wine',
-                      style: WwText.bodySmall(color: WwColors.gold)
+                      style: WwText.bodySmall(color: WwColors.violet)
                           .copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -1029,7 +1029,7 @@ class _WineResultCardState extends State<_WineResultCard> {
                         ),
                         _ScoreDots(value: userVal, color: WwColors.textDisabled),
                         const SizedBox(width: 8),
-                        _ScoreDots(value: wineVal, color: WwColors.gold),
+                        _ScoreDots(value: wineVal, color: WwColors.violet),
                       ],
                     ),
                   );
@@ -1127,13 +1127,13 @@ class _FoodCard extends StatelessWidget {
           color: selected ? WwColors.bgElevated : WwColors.bgSurface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? WwColors.gold : WwColors.borderSubtle,
+            color: selected ? WwColors.violet : WwColors.borderSubtle,
             width: selected ? 2 : 1,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: WwColors.gold.withValues(alpha: 0.15),
+                    color: WwColors.violet.withValues(alpha: 0.15),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -1200,7 +1200,7 @@ class _ScoreDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dotColor = color ?? WwColors.gold;
+    final dotColor = color ?? WwColors.violet;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
@@ -1296,13 +1296,13 @@ class _PhilosophyCard extends StatelessWidget {
         curve: Curves.easeOut,
         padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
         decoration: BoxDecoration(
-          color: selected ? WwColors.goldTint : WwColors.bgSurface,
+          color: selected ? WwColors.violetTint : WwColors.bgSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? WwColors.gold : WwColors.borderSubtle,
+            color: selected ? WwColors.violet : WwColors.borderSubtle,
             width: selected ? 2 : 1,
           ),
-          boxShadow: selected ? WwDecorations.goldGlow() : null,
+          boxShadow: selected ? WwDecorations.violetGlow() : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1314,7 +1314,7 @@ class _PhilosophyCard extends StatelessWidget {
             Text(
               option.label,
               style: WwText.titleMedium(
-                color: selected ? WwColors.gold : WwColors.textSecondary,
+                color: selected ? WwColors.violet : WwColors.textSecondary,
               ),
             ),
             const SizedBox(height: 6),

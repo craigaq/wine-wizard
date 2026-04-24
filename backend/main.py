@@ -7,7 +7,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 # Show per-criterion Middle Ground debug lines from the interceptor
-logging.getLogger("wine_wizard.interceptor").setLevel(logging.DEBUG)
+logging.getLogger("cellar_sage.interceptor").setLevel(logging.DEBUG)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -27,7 +27,7 @@ from local_sourcing import TIER_LABELS, TIER_REGION_HINTS
 from currency import convert_from_aud, convert_to_aud, lat_lng_to_currency, get_info as get_currency_info
 from affiliate_config import build_affiliate_url
 
-app = FastAPI(title="Wine Wizard API")
+app = FastAPI(title="Cellar Sage API")
 
 
 @app.on_event("startup")
@@ -35,7 +35,7 @@ async def startup_event():
     """Warm the merchant validation cache on startup."""
     from merchant_validator import validate_all_catalog
     summary = await validate_all_catalog()
-    logging.getLogger("wine_wizard").info(
+    logging.getLogger("cellar_sage").info(
         "[Startup] Merchant validation complete: %s", summary
     )
 
@@ -169,7 +169,7 @@ class CheckPairingResponse(BaseModel):
 
 @app.get("/hello")
 def hello():
-    return {"message": "Hello from Wine Wizard!"}
+    return {"message": "Hello from Cellar Sage!"}
 
 
 @app.get("/check-pairing", response_model=CheckPairingResponse)
