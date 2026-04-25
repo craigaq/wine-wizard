@@ -1,16 +1,16 @@
 {
 	"folders": [
 		{
-			"name": "WineWizard — Backend",
+			"name": "CellarSage — Backend",
 			"path": "backend"
 		},
 		{
-			"name": "WineWizard — Frontend",
+			"name": "CellarSage — Frontend",
 			"path": "frontend"
 		}
 	],
 	"settings": {
-		"python.defaultInterpreterPath": "${workspaceFolder:WineWizard — Backend}/venv/Scripts/python.exe",
+		"python.defaultInterpreterPath": "${workspaceFolder:CellarSage — Backend}/venv/Scripts/python.exe",
 		"python.terminal.activateEnvironment": true,
 		"dart.flutterSdkPath": "C:\\flutter",
 		"editor.formatOnSave": true,
@@ -35,15 +35,15 @@
 				"type": "debugpy",
 				"request": "launch",
 				"module": "uvicorn",
-				"args": ["main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
-				"cwd": "${workspaceFolder:WineWizard — Backend}",
+				"args": ["main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"],
+				"cwd": "${workspaceFolder:CellarSage — Backend}",
 				"jinja": true
 			},
 			{
 				"name": "Run Flutter (Android Emulator)",
 				"type": "node",
 				"request": "launch",
-				"program": "${workspaceFolder:WineWizard — Frontend}/lib/main.dart",
+				"program": "${workspaceFolder:CellarSage — Frontend}/lib/main.dart",
 				"runtimeExecutable": "C:\\flutter\\bin\\flutter.bat",
 				"runtimeArgs": ["run"]
 			}
