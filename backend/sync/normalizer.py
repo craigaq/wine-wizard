@@ -43,18 +43,15 @@ def _first(*keys, src: dict):
 # ── Per-merchant normalizers ──────────────────────────────────────────────────
 
 def _normalize_liquorland(item: dict, retailer: str) -> Optional[tuple[WineRecord, MerchantOffer]]:
-    """
-    Liquorland actor (dromb/liquorland-au-catalog-product-lookup-unofficial)
-    typical output keys: title, name, price, price_now, currentPrice,
-                         region, type, url, productUrl
-    """
     name = _first('title', 'name', 'product_name', src=item)
     if not name:
+        log.debug("liquorland item dropped — no name. Keys: %s", list(item.keys()))
         return None
 
     price_raw = _first('price_now', 'currentPrice', 'price', 'salePrice', src=item)
     price = _coerce_price(price_raw)
     if price is None or price <= 0:
+        log.debug("liquorland item dropped — no price. Keys: %s | name=%r", list(item.keys()), name)
         return None
 
     vintage = _extract_vintage(name)
@@ -72,16 +69,14 @@ def _normalize_liquorland(item: dict, retailer: str) -> Optional[tuple[WineRecor
 
 
 def _normalize_danmurphys(item: dict, retailer: str) -> Optional[tuple[WineRecord, MerchantOffer]]:
-    """
-    apify/web-scraper output keys set by our pageFunction:
-    name, price, url  (retailer already set to 'danmurphys')
-    """
     name = _first('name', 'title', 'productName', src=item)
     if not name:
+        log.debug("danmurphys item dropped — no name. Keys: %s", list(item.keys()))
         return None
 
     price = _coerce_price(_first('price', 'currentPrice', 'priceValue', src=item))
     if price is None or price <= 0:
+        log.debug("danmurphys item dropped — no price. Keys: %s | name=%r", list(item.keys()), name)
         return None
 
     vintage  = _extract_vintage(name)
@@ -121,6 +116,9 @@ def normalize(items: list[dict], merchant: str) -> list[tuple[WineRecord, Mercha
                 results.append(pair)
         except Exception as exc:
             log.warning("Normalizer skipped item for %s: %s — %r", merchant, exc, item)
+
+    if items and not results:
+        log.warning("All %d items dropped for %s — sample raw item: %r", len(items), merchant, items[0])
 
     log.info("Normalised %d/%d items for %s", len(results), len(items), merchant)
     return results

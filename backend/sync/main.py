@@ -20,7 +20,7 @@ from .scraper import run_actor
 from .upsert import upsert_batch
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%SZ",
 )
