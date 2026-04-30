@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/wine_recommendation.dart';
-import '../screens/nearby_screen.dart';
 import '../services/api_service.dart';
 import '../services/currency_service.dart';
 import '../theme/app_theme.dart';
@@ -41,7 +41,7 @@ class _QuizScreenState extends State<QuizScreen> {
   static const int _totalPages = 10;
 
   /// Each entry: label = UI text, id = backend key, emoji = grid icon,
-  /// comment = Wizard's in-step commentary shown when the item is selected.
+  /// comment = fox commentary shown when the item is selected.
   static const List<Map<String, String>> _foodOptions = [
     {
       'label': 'Steak, Lamb, or Burgers',
@@ -283,7 +283,7 @@ class _QuizScreenState extends State<QuizScreen> {
       });
       // Palate conflict alert (shown after results load)
       if (result.alert != null && mounted) {
-        await showWizardConflictAlert(
+        await showConflictAlert(
           context,
           result.alert!,
           _applyConflictAdjustment,
@@ -514,7 +514,7 @@ class _QuizScreenState extends State<QuizScreen> {
           Text('Food Pairing', style: WwText.headlineLarge()),
           const SizedBox(height: 8),
           Text(
-            "What's on the table tonight? The Wizard will fine-tune your match.",
+            "What's on the table tonight? The Cellar Fox will fine-tune your match.",
             style: WwText.bodyMedium(),
           ),
           const SizedBox(height: 16),
@@ -523,7 +523,7 @@ class _QuizScreenState extends State<QuizScreen> {
             child: SwitchListTile(
               secondary: const Text('🍷', style: TextStyle(fontSize: 22)),
               title: const Text('I prefer dry wines'),
-              subtitle: const Text('The Wizard will flag sweet-pairing conflicts'),
+              subtitle: const Text('The Cellar Fox will flag sweet-pairing conflicts'),
               value: _prefDry,
               onChanged: (v) => setState(() {
                 _prefDry = v;
@@ -591,13 +591,13 @@ class _QuizScreenState extends State<QuizScreen> {
                 : const SizedBox.shrink(key: ValueKey('philosophy-hidden')),
           ),
 
-          // Wizard commentary — fades in/out as the selection changes
+          // Fox commentary — fades in/out as the selection changes
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, animation) =>
                 FadeTransition(opacity: animation, child: child),
             child: _foodComment != null
-                ? _WizardComment(
+                ? _FoxComment(
                     key: ValueKey('$_foodPairing:$_pairingMode'),
                     text: _foodComment!,
                   )
@@ -620,7 +620,7 @@ class _QuizScreenState extends State<QuizScreen> {
           Text('Your Budget (per bottle)', style: WwText.headlineLarge()),
           const SizedBox(height: 8),
           Text(
-            'The Wizard respects all budgets. Even the modest ones.',
+            'The Cellar Fox respects all budgets. Even the modest ones.',
             style: WwText.bodyMedium(),
           ),
           const SizedBox(height: 32),
@@ -714,11 +714,11 @@ class _QuizScreenState extends State<QuizScreen> {
               decoration: WwDecorations.witCallout(),
               child: Row(
                 children: [
-                  const Text('🧙‍♂️'),
+                  const Text('🦊'),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Hmm. Light Weight with High Texture — the Wizard has thoughts. Tap Next.',
+                      'Hmm. Light Weight with High Texture — the Cellar Fox has thoughts. Tap Next.',
                       style: WwText.witQuote(),
                     ),
                   ),
@@ -910,6 +910,25 @@ class _WineResultCard extends StatefulWidget {
 
 class _WineResultCardState extends State<_WineResultCard> {
   bool _expanded = false;
+  List<BuyOption>? _buyOptions;
+  bool _buyLoading = false;
+  String? _buyError;
+
+  Future<void> _loadBuyOptions() async {
+    if (_buyOptions != null || _buyLoading) return;
+    final varietal = widget.wine.varietal;
+    if (varietal.isEmpty) return;
+    setState(() { _buyLoading = true; _buyError = null; });
+    try {
+      final options = await ApiService().buyOptions(
+        varietal: varietal,
+        budgetMax: widget.budgetMax,
+      );
+      if (mounted) setState(() { _buyOptions = options; _buyLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _buyError = e.toString(); _buyLoading = false; });
+    }
+  }
 
   Color _rankColor() {
     return switch (widget.rank) {
@@ -933,7 +952,10 @@ class _WineResultCardState extends State<_WineResultCard> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => setState(() => _expanded = !_expanded),
+        onTap: () {
+          setState(() => _expanded = !_expanded);
+          if (_expanded) _loadBuyOptions();
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1035,30 +1057,22 @@ class _WineResultCardState extends State<_WineResultCard> {
                   );
                 }),
                 const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => NearbyScreen(
-                          wineName: widget.wine.name,
-                          budgetMin: widget.budgetMin,
-                          budgetMax: widget.budgetMax,
-                          currencyCode: widget.currencyCode,
-                        ),
-                      ),
-                    ),
-                    icon: const Icon(Icons.place, size: 16),
-                    label: const Text('Find Nearby'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      textStyle: const TextStyle(fontSize: 13),
-                    ),
-                  ),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('🛒', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 6),
+                    Text('Where to Buy', style: WwText.titleMedium()),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _WhereToBuySection(
+                  buyLoading: _buyLoading,
+                  buyError: _buyError,
+                  buyOptions: _buyOptions,
+                  varietal: widget.wine.varietal,
+                  onRetry: _loadBuyOptions,
                 ),
               ],
             ],
@@ -1070,12 +1084,138 @@ class _WineResultCardState extends State<_WineResultCard> {
 }
 
 // ---------------------------------------------------------------------------
-// Wizard commentary bubble (food pairing step)
+// Where to Buy section (lazy-loaded inside wine result card)
 // ---------------------------------------------------------------------------
 
-class _WizardComment extends StatelessWidget {
+class _WhereToBuySection extends StatelessWidget {
+  final bool buyLoading;
+  final String? buyError;
+  final List<BuyOption>? buyOptions;
+  final String varietal;
+  final VoidCallback onRetry;
+
+  const _WhereToBuySection({
+    required this.buyLoading,
+    required this.buyError,
+    required this.buyOptions,
+    required this.varietal,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (varietal.isEmpty) {
+      return Text(
+        'No varietal data — try a different recommendation.',
+        style: WwText.bodySmall(color: WwColors.textDisabled),
+      );
+    }
+
+    if (buyLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: WwColors.violet),
+          ),
+        ),
+      );
+    }
+
+    if (buyError != null) {
+      return Row(
+        children: [
+          Text(
+            'Could not load listings.',
+            style: WwText.bodySmall(color: WwColors.error),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onRetry,
+            child: Text(
+              'Retry',
+              style: WwText.bodySmall(color: WwColors.violet)
+                  .copyWith(decoration: TextDecoration.underline),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (buyOptions == null || buyOptions!.isEmpty) {
+      return Text(
+        'No Liquorland listings found for $varietal.',
+        style: WwText.bodySmall(color: WwColors.textDisabled),
+      );
+    }
+
+    return Column(
+      children: buyOptions!.map((opt) => _BuyOptionRow(option: opt)).toList(),
+    );
+  }
+}
+
+class _BuyOptionRow extends StatelessWidget {
+  final BuyOption option;
+  const _BuyOptionRow({required this.option});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  option.name,
+                  style: WwText.bodySmall(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  'A\$${option.price.toStringAsFixed(2)}',
+                  style: WwText.bodySmall(color: WwColors.violet)
+                      .copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          if (option.url.isNotEmpty)
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () async {
+                final uri = Uri.tryParse(option.url);
+                if (uri != null && await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Text(
+                'Buy',
+                style: WwText.labelLarge(color: WwColors.violet),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fox commentary bubble (food pairing step)
+// ---------------------------------------------------------------------------
+
+class _FoxComment extends StatelessWidget {
   final String text;
-  const _WizardComment({super.key, required this.text});
+  const _FoxComment({super.key, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -1086,7 +1226,7 @@ class _WizardComment extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('🧙‍♂️', style: TextStyle(fontSize: 22)),
+          const Text('🦊', style: TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(text, style: WwText.witQuote()),

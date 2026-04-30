@@ -77,6 +77,15 @@ def _infer_varietal(varietal: str | None, name: str) -> str | None:
     return None
 
 
+def _keywords_for_canonical(canonical: str) -> list[str]:
+    """Return all keyword strings that reverse-map to a given canonical varietal."""
+    return [kw for kw, can in _VARIETAL_KEYWORDS if can == canonical]
+
+
+# Module-level cache for buy-options queries: (varietal, retailer) → {"data": list, "ts": float}
+_BUY_CACHE: dict[tuple, dict] = {}
+
+
 def _connection():
     try:
         import psycopg2
@@ -140,4 +149,77 @@ def get_cheapest_by_varietal(retailer: str = "liquorland") -> dict[str, dict]:
 
     _CACHE[retailer] = {"data": result, "ts": time.time()}
     log.info("db_catalog: loaded %d live prices for retailer=%s", len(result), retailer)
+    return result
+
+
+def get_buy_options(
+    varietal: str,
+    budget_max_aud: float = 9999.0,
+    retailer: str = "liquorland",
+) -> list[dict]:
+    """
+    Return all matching Liquorland offers for a canonical varietal name.
+
+    Result shape: [{"name": "...", "price": 18.99, "url": "..."}]
+
+    Uses reverse keyword mapping to find all DB rows whose varietal or name
+    contains any keyword that maps to the requested canonical varietal.
+    """
+    cache_key = (varietal, retailer, budget_max_aud)
+    cached = _BUY_CACHE.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < _TTL_SECONDS:
+        return cached["data"]
+
+    keywords = _keywords_for_canonical(varietal)
+    if not keywords:
+        log.warning("db_catalog: no keywords found for canonical='%s'", varietal)
+        return []
+
+    conn = _connection()
+    if not conn:
+        return _BUY_CACHE.get(cache_key, {}).get("data", [])
+
+    # Build dynamic OR clause: each keyword checked against varietal and name columns
+    like_clauses = " OR ".join(
+        f"LOWER(w.varietal) LIKE %s OR LOWER(w.name) LIKE %s"
+        for _ in keywords
+    )
+    params: list = [retailer, MIN_PRICE_AUD, budget_max_aud]
+    for kw in keywords:
+        params.extend([f"%{kw}%", f"%{kw}%"])
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT w.name, MIN(mo.price) AS price, MAX(mo.url) AS url
+                FROM merchant_offers mo
+                JOIN wines w ON w.id = mo.wine_id
+                WHERE mo.retailer = %s
+                  AND mo.price IS NOT NULL
+                  AND mo.price >= %s
+                  AND mo.price <= %s
+                  AND ({like_clauses})
+                GROUP BY w.name
+                ORDER BY MIN(mo.price) ASC
+                LIMIT 20
+                """,
+                params,
+            )
+            rows = cur.fetchall()
+    except Exception as exc:
+        log.warning("db_catalog: get_buy_options query failed — %s", exc)
+        return _BUY_CACHE.get(cache_key, {}).get("data", [])
+    finally:
+        conn.close()
+
+    result = [
+        {"name": row["name"], "price": float(row["price"]), "url": row["url"] or ""}
+        for row in rows
+    ]
+    _BUY_CACHE[cache_key] = {"data": result, "ts": time.time()}
+    log.info(
+        "db_catalog: get_buy_options varietal='%s' retailer=%s → %d results",
+        varietal, retailer, len(result),
+    )
     return result

@@ -166,6 +166,12 @@ class CheckPairingResponse(BaseModel):
     pairing_conflict: Optional[dict] = None
 
 
+class BuyOption(BaseModel):
+    name: str
+    price: float
+    url: str
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -215,12 +221,12 @@ def _build_conflict_alert(prefs: UserPreferences) -> dict | None:
     # Light body + high tannin — the classic contradiction
     if prefs.weight_body <= 2 and prefs.texture_tannin >= 4:
         return {
-            "title": "🧙‍♂️ Your Wizard Senses a Disturbance",
+            "title": "🦊 The Cellar Fox Senses a Disturbance",
             "message": (
                 "Ah — Light Weight with High Texture. Bold. Rare. "
                 "Like a featherweight boxer with an iron grip.\n\n"
                 "Most light-bodied wines keep their tannins polite and their manners impeccable. "
-                "For a wider selection from the cellar, the Wizard suggests softening the Texture."
+                "For a wider selection from the cellar, the Cellar Fox suggests softening the Texture."
             ),
             "field": "texture_tannin",
             "suggested_value": 2,
@@ -228,12 +234,12 @@ def _build_conflict_alert(prefs: UserPreferences) -> dict | None:
     # Low flavor + high acidity — sharp without expression
     if prefs.flavor_intensity <= 1 and prefs.crispness_acidity >= 4:
         return {
-            "title": "🧙‍♂️ The Wizard Raises an Eyebrow",
+            "title": "🦊 The Cellar Fox Raises an Eyebrow",
             "message": (
                 "Maximum Crispness with barely any Flavor Intensity — "
                 "you're asking for a razor edge with nothing behind it.\n\n"
                 "The sharpness would dominate completely. "
-                "The Wizard suggests lifting Flavor Intensity so there's something to cut through."
+                "The Cellar Fox suggests lifting Flavor Intensity so there's something to cut through."
             ),
             "field": "flavor_intensity",
             "suggested_value": 3,
@@ -241,12 +247,12 @@ def _build_conflict_alert(prefs: UserPreferences) -> dict | None:
     # Maximum tannin + maximum acidity — very aggressive palate
     if prefs.texture_tannin >= 5 and prefs.crispness_acidity >= 5:
         return {
-            "title": "🧙‍♂️ The Wizard Is Impressed (and Concerned)",
+            "title": "🦊 The Cellar Fox Is Impressed (and Concerned)",
             "message": (
                 "Maximum Texture AND Maximum Crispness. "
                 "You want every molecule of that wine to fight back.\n\n"
                 "This is a very narrow field — few wines survive both extremes well. "
-                "The Wizard suggests dialling Crispness back slightly for a more satisfying match."
+                "The Cellar Fox suggests dialling Crispness back slightly for a more satisfying match."
             ),
             "field": "crispness_acidity",
             "suggested_value": 3,
@@ -275,6 +281,7 @@ def _raw_metrics_dict(wine: WineProfile) -> dict:
         "abv_percentage":     wine.abv_percentage,
         "residual_sugar_gl":  wine.residual_sugar_gl,
         "style":              wine.style,
+        "varietal":           wine.varietal,
     }
 
 
@@ -317,6 +324,20 @@ def recommend(req: RecommendRequest):
         ),
         pairing_conflict=dataclasses.asdict(paradox) if paradox else None,
     )
+
+
+@app.get("/buy-options", response_model=list[BuyOption])
+def buy_options(
+    varietal: str = Query(..., description="Canonical varietal name (e.g. 'Cabernet Sauvignon')"),
+    budget_max: float = Query(9999.0, ge=0, description="Maximum price in AUD"),
+):
+    """
+    Return matching Liquorland listings for a given wine varietal.
+    Used by the Flutter app after the user selects a recommended wine style.
+    """
+    from db_catalog import get_buy_options
+    options = get_buy_options(varietal=varietal, budget_max_aud=budget_max)
+    return [BuyOption(**o) for o in options]
 
 
 def _merchant_response(r, currency_code: str) -> MerchantResponse:

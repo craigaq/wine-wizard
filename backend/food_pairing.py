@@ -19,7 +19,7 @@ Pairing philosophy:
                Rich food → crisp wine to slice through fat.
                Delicate food → expressive wine to frame it.
 
-Wizard's Secret (the logic behind each entry):
+Cellar Fox's Logic (the reasoning behind each entry):
   red_meat     — congruent: structure meets richness. contrast: acid cuts fat.
   poultry      — congruent: delicate meets delicate. contrast: expressive frames the bird.
   white_fish   — congruent: bright and clean. contrast: textured and expressive (tannin still off-limits).

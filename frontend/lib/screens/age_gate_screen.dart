@@ -116,7 +116,7 @@ class AgeGateScreen extends StatelessWidget {
         title: Text('Come Back Later', style: WwText.titleMedium()),
         content: Text(
           "The Cellar Sage will be here when you're ready. "
-          "Until then, stay curious! 🧙‍♂️",
+          "Until then, stay curious! 🦊",
           style: WwText.bodyMedium(),
         ),
         actions: [

@@ -110,7 +110,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
             const CircularProgressIndicator(color: WwColors.violet),
             const SizedBox(height: 16),
             Text(
-              "Consulting the Wizard's map…",
+              "Consulting the Cellar Fox's map…",
               style: WwText.bodyMedium(),
             ),
           ],
@@ -125,10 +125,10 @@ class _NearbyScreenState extends State<NearbyScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('🧙‍♂️', style: TextStyle(fontSize: 48)),
+              const Text('🦊', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 16),
               Text(
-                "The Wizard's crystal ball is foggy.",
+                "The Cellar Fox is a bit lost.",
                 style: WwText.titleMedium(),
                 textAlign: TextAlign.center,
               ),
@@ -158,7 +158,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
             const Text('😬', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 16),
             Text(
-              'No merchants found nearby.\nEven the Wizard has limits.',
+              'No merchants found nearby.\nEven the Cellar Fox has limits.',
               textAlign: TextAlign.center,
               style: WwText.bodyMedium(),
             ),

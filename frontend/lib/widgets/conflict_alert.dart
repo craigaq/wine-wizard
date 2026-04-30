@@ -41,7 +41,7 @@ Future<void> showPalateParadoxSheet(
               ),
             ),
 
-            const Text('🧙‍♂️', style: TextStyle(fontSize: 40)),
+            const Text('🦊', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 10),
 
             Text(
@@ -101,7 +101,7 @@ Future<void> showPalateParadoxSheet(
 // Palate conflict alert (attribute-level mismatch) — dialog
 // ---------------------------------------------------------------------------
 
-Future<void> showWizardConflictAlert(
+Future<void> showConflictAlert(
   BuildContext context,
   ConflictAlert alert,
   void Function(int) onAdjust,
@@ -120,7 +120,7 @@ Future<void> showWizardConflictAlert(
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🧙‍♂️', style: TextStyle(fontSize: 56)),
+            const Text('🦊', style: TextStyle(fontSize: 56)),
             const SizedBox(height: 15),
             Text(
               alert.message,
@@ -143,7 +143,7 @@ Future<void> showWizardConflictAlert(
               Navigator.of(context).pop();
             },
             child: Text(
-              'Trust the Wizard',
+              'Trust the Cellar Fox',
               style: WwText.labelLarge(color: Colors.black),
             ),
           ),
@@ -226,7 +226,7 @@ Future<void> showGastroClashAlert(
                         Navigator.of(context).pop();
                       },
                       child: Text(
-                        'Trust the Wizard',
+                        'Trust the Cellar Fox',
                         style: WwText.labelLarge(color: Colors.black),
                       ),
                     ),

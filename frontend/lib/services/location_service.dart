@@ -2,12 +2,12 @@ import 'package:geolocator/geolocator.dart';
 
 class LocationService {
   /// Returns the device's current GPS position.
-  /// Handles permission checks gracefully — the Wizard asks nicely.
+  /// Handles permission checks gracefully.
   Future<Position> getCurrentPosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception(
-        'Location services are disabled. Even the Wizard needs a map.',
+        'Location services are disabled. Even the Cellar Fox needs a map.',
       );
     }
 
@@ -16,7 +16,7 @@ class LocationService {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         throw Exception(
-          'Location permission denied. The Wizard cannot find your cellar.',
+          'Location permission denied. The Cellar Fox cannot find your cellar.',
         );
       }
     }

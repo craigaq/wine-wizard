@@ -97,6 +97,24 @@ class ApiService {
     throw Exception('Server returned status ${response.statusCode}');
   }
 
+  Future<List<BuyOption>> buyOptions({
+    required String varietal,
+    double budgetMax = 9999.0,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/buy-options').replace(queryParameters: {
+      'varietal': varietal,
+      'budget_max': '$budgetMax',
+    });
+    final response = await http.get(uri);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List;
+      return data
+          .map((o) => BuyOption.fromJson(o as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Server returned status ${response.statusCode}');
+  }
+
   Future<NearbyResponse> nearby({
     required String wineName,
     required double userLat,

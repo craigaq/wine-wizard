@@ -87,6 +87,8 @@ class WineRecommendation {
     required this.rawMetrics,
   });
 
+  String get varietal => (rawMetrics['varietal'] as String?) ?? '';
+
   factory WineRecommendation.fromJson(Map<String, dynamic> json) {
     return WineRecommendation(
       name:    json['name']    as String,
@@ -99,4 +101,18 @@ class WineRecommendation {
       rawMetrics: (json['raw_metrics'] as Map<String, dynamic>?) ?? {},
     );
   }
+}
+
+class BuyOption {
+  final String name;
+  final double price;
+  final String url;
+
+  BuyOption({required this.name, required this.price, required this.url});
+
+  factory BuyOption.fromJson(Map<String, dynamic> json) => BuyOption(
+    name:  json['name']  as String,
+    price: (json['price'] as num).toDouble(),
+    url:   json['url']   as String,
+  );
 }

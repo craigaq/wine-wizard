@@ -82,7 +82,7 @@ class WineProfile:
         self.alcohol_abv = self.abv_percentage
 
 
-# Wines the Wizard targets in "Find a Middle Ground" mode.
+# Wines the Cellar Fox targets in "Find a Middle Ground" mode.
 # These varietals are technically dry but aromatically intense enough
 # to stand in for off-dry pairings with spicy food.
 COMPROMISE_VARIETALS: frozenset[str] = frozenset({
@@ -154,7 +154,7 @@ class FoodPairingAlert:
     Raised when the user's food choice clashes with their palate profile.
 
     action_type:
-        "OVERRIDE"  — the Wizard strongly recommends adjusting preferences
+        "OVERRIDE"  — the Cellar Fox strongly recommends adjusting preferences
         "WARNING"   — worth noting but not a hard incompatibility
 
     new_values:
@@ -251,7 +251,7 @@ def resolve_pairing_conflict(prefs: UserPreferences) -> PalateParadox | None:
         status="CONFLICT",
         message=(
             "This dish pairs best with off-dry or fruit-forward wine to cool the heat, "
-            "but you've told the Wizard you prefer dry. How would you like to proceed?"
+            "but you've told the Cellar Fox you prefer dry. How would you like to proceed?"
         ),
         options=[
             {
@@ -281,7 +281,7 @@ class _ClashRule:
 
     condition:  Lambda that receives UserPreferences and returns True when
                 the clash applies.  Evaluated only when food_id matches.
-    new_values: Fields to override if the user accepts the Wizard's suggestion.
+    new_values: Fields to override if the user accepts the Cellar Fox's suggestion.
     """
     food_id:    str
     condition:  Callable[[UserPreferences], bool]
@@ -301,12 +301,12 @@ _CLASH_RULES: list[_ClashRule] = [
         food_id="white_fish",
         condition=lambda p: p.texture_tannin >= 3,
         alert_id="white_fish_tannin_clash",
-        title="Wizard Insight: The Metallic Mismatch 🐟",
+        title="Cellar Fox Insight: The Metallic Mismatch 🐟",
         message=(
             "You've chosen white fish but your Texture (Tannin) is quite high. "
             "Tannins and delicate fish oils react to create a metallic, tinny taste — "
             "one of the most notorious mismatches in the cellar.\n\n"
-            "The Wizard strongly suggests dropping Texture to Silky (1) "
+            "The Cellar Fox strongly suggests dropping Texture to Silky (1) "
             "so the fish can actually shine."
         ),
         new_values={"texture_tannin": 1},
@@ -318,11 +318,11 @@ _CLASH_RULES: list[_ClashRule] = [
         food_id="rich_fish",
         condition=lambda p: p.texture_tannin >= 4,
         alert_id="rich_fish_tannin_clash",
-        title="Wizard Insight: Easy on the Grip 🍣",
+        title="Cellar Fox Insight: Easy on the Grip 🍣",
         message=(
             "Salmon and tuna can handle a light touch of texture — "
             "but at this level the tannins will overpower the fish.\n\n"
-            "The Wizard suggests softening Texture to a Gentle (2) "
+            "The Cellar Fox suggests softening Texture to a Gentle (2) "
             "to stay in rosé/light red territory."
         ),
         new_values={"texture_tannin": 2},
@@ -334,11 +334,11 @@ _CLASH_RULES: list[_ClashRule] = [
         food_id="spicy_food",
         condition=lambda p: p.weight_body >= 4,
         alert_id="spicy_alcohol_clash",
-        title="Wizard Insight: Careful with the Heat! 🌶️",
+        title="Cellar Fox Insight: Careful with the Heat! 🌶️",
         message=(
             "Bold, heavy wines amplify spicy food — the alcohol fans the flames "
             "and the finish turns bitter.\n\n"
-            "The Wizard suggests a Lighter Weight (2) and a touch more "
+            "The Cellar Fox suggests a Lighter Weight (2) and a touch more "
             "Flavor Intensity (4) — the fruit sweetness will cool the burn."
         ),
         new_values={"weight_body": 2, "flavor_intensity": 4},
@@ -350,11 +350,11 @@ _CLASH_RULES: list[_ClashRule] = [
         food_id="tomato_sauce",
         condition=lambda p: p.crispness_acidity <= 2,
         alert_id="tomato_low_acid_clash",
-        title="Wizard Insight: The Flat Tomato Problem 🍅",
+        title="Cellar Fox Insight: The Flat Tomato Problem 🍅",
         message=(
             "Tomato sauce is highly acidic — a low-crispness wine will taste "
             "flat and lifeless next to it.\n\n"
-            "The Wizard suggests lifting Crispness to at least a Medium (3) "
+            "The Cellar Fox suggests lifting Crispness to at least a Medium (3) "
             "so the wine can match the tomato's natural tartness."
         ),
         new_values={"crispness_acidity": 3},
@@ -366,11 +366,11 @@ _CLASH_RULES: list[_ClashRule] = [
         food_id="poultry",
         condition=lambda p: p.texture_tannin >= 4,
         alert_id="poultry_tannin_clash",
-        title="Wizard Insight: Too Much Grip for the Bird 🍗",
+        title="Cellar Fox Insight: Too Much Grip for the Bird 🍗",
         message=(
             "Chicken and turkey have delicate flavours that get steamrolled "
             "by high tannins — the wine ends up tasting bitter and dry.\n\n"
-            "The Wizard suggests softening Texture to a Gentle (2) "
+            "The Cellar Fox suggests softening Texture to a Gentle (2) "
             "to let the poultry lead."
         ),
         new_values={"texture_tannin": 2},
