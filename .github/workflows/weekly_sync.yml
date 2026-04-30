@@ -20,6 +20,13 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Assert branch is master
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/master" ]; then
+            echo "ERROR: This workflow must run from master (got ${{ github.ref }})"
+            exit 1
+          fi
+
       - name: Checkout repo
         uses: actions/checkout@v4
 
