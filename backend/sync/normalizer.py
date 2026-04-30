@@ -12,6 +12,34 @@ from .models import WineRecord, MerchantOffer
 
 log = logging.getLogger(__name__)
 
+# ── Known catalog varietal keywords (lowercase) ───────────────────────────────
+# Items whose name/varietal don't match any of these are rejected so only
+# wines in our known catalog land in the database.
+# Sorted longest-first so "cabernet sauvignon" matches before "cabernet".
+_CATALOG_KEYWORDS: list[str] = sorted([
+    "cabernet sauvignon", "cabernet franc", "sauvignon blanc",
+    "pinot noir", "pinot grigio", "pinot gris",
+    "grüner veltliner", "gruner veltliner",
+    "gewürztraminer", "gewurztraminer",
+    "nero d'avola", "chenin blanc", "trebbiano",
+    "tempranillo", "sangiovese", "carménère", "carmenere",
+    "mourvèdre", "mourvedre", "vermentino",
+    "chardonnay", "grenache", "viognier", "riesling",
+    "marsanne", "semillon", "malbec", "merlot",
+    "shiraz", "syrah", "gamay", "fiano", "barbera",
+    "nebbiolo", "zinfandel", "moscato", "muscat",
+    "airén", "airen", "albariño", "albarino",
+    "torrontés", "torrontes", "friulano",
+    "cabernet",   # catch-all — must stay after more specific entries
+], key=lambda s: -len(s))
+
+
+def _matches_catalog(varietal: Optional[str], name: str) -> bool:
+    """Return True if this wine maps to a known catalog varietal."""
+    haystack = (varietal or "").lower() + " " + name.lower()
+    return any(kw in haystack for kw in _CATALOG_KEYWORDS)
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _extract_vintage(text: str) -> Optional[int]:
@@ -45,24 +73,25 @@ def _first(*keys, src: dict):
 def _normalize_liquorland(item: dict, retailer: str) -> Optional[tuple[WineRecord, MerchantOffer]]:
     name = _first('title', 'name', 'product_name', src=item)
     if not name:
-        log.debug("liquorland item dropped — no name. Keys: %s", list(item.keys()))
         return None
 
     price_raw = _first('price_now', 'currentPrice', 'price', 'salePrice', src=item)
     price = _coerce_price(price_raw)
     if price is None or price <= 0:
-        log.debug("liquorland item dropped — no price. Keys: %s | name=%r", list(item.keys()), name)
         return None
 
-    vintage = _extract_vintage(name)
-    region  = _first('region', 'wine_region', 'area', src=item)
+    vintage  = _extract_vintage(name)
+    region   = _first('region', 'wine_region', 'area', src=item)
     varietal = _first('varietal', 'variety', 'grape', 'type', src=item)
-    url = _first('url', 'productUrl', 'link', src=item)
+    url      = _first('url', 'productUrl', 'link', src=item)
 
-    # Strip vintage from stored name so dedup works across merchants
+    if not _matches_catalog(varietal, name):
+        log.debug("liquorland item skipped — not in known catalog: %r", name)
+        return None
+
     clean_name = re.sub(r'\s*\b(19[89]\d|20[012]\d)\b\s*', ' ', name).strip()
 
-    wine = WineRecord(name=clean_name, vintage=vintage, region=region, varietal=varietal)
+    wine  = WineRecord(name=clean_name, vintage=vintage, region=region, varietal=varietal)
     offer = MerchantOffer(wine_name=clean_name, vintage=vintage,
                           retailer=retailer, price=price, url=url)
     return wine, offer
@@ -71,12 +100,10 @@ def _normalize_liquorland(item: dict, retailer: str) -> Optional[tuple[WineRecor
 def _normalize_danmurphys(item: dict, retailer: str) -> Optional[tuple[WineRecord, MerchantOffer]]:
     name = _first('name', 'title', 'productName', src=item)
     if not name:
-        log.debug("danmurphys item dropped — no name. Keys: %s", list(item.keys()))
         return None
 
     price = _coerce_price(_first('price', 'currentPrice', 'priceValue', src=item))
     if price is None or price <= 0:
-        log.debug("danmurphys item dropped — no price. Keys: %s | name=%r", list(item.keys()), name)
         return None
 
     vintage  = _extract_vintage(name)
@@ -84,6 +111,10 @@ def _normalize_danmurphys(item: dict, retailer: str) -> Optional[tuple[WineRecor
     region   = _first('region', 'wine_region', src=item)
     varietal = _first('varietal', 'variety', 'type', src=item)
     url      = _first('url', 'link', src=item)
+
+    if not _matches_catalog(varietal, name):
+        log.debug("danmurphys item skipped — not in known catalog: %r", name)
+        return None
 
     wine  = WineRecord(name=clean_name, vintage=vintage, region=region, varietal=varietal)
     offer = MerchantOffer(wine_name=clean_name, vintage=vintage,
@@ -116,10 +147,6 @@ def normalize(items: list[dict], merchant: str) -> list[tuple[WineRecord, Mercha
                 results.append(pair)
         except Exception as exc:
             log.warning("Normalizer skipped item for %s: %s — %r", merchant, exc, item)
-
-    if items and not results:
-        print(f"[DIAG] All {len(items)} items dropped for {merchant}. Sample keys: {list(items[0].keys())}", flush=True)
-        print(f"[DIAG] Sample item: {items[0]}", flush=True)
 
     log.info("Normalised %d/%d items for %s", len(results), len(items), merchant)
     return results

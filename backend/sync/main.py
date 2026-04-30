@@ -20,7 +20,7 @@ from .scraper import run_actor
 from .upsert import upsert_batch
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%SZ",
 )
@@ -40,6 +40,14 @@ def sync_merchant(merchant: str, cfg: dict) -> SyncResult:
 
         pairs = normalize(raw, merchant)
         result.normalised = len(pairs)
+
+        if raw and result.normalised < result.scraped * 0.70:
+            drop_pct = 100 * (1 - result.normalised / result.scraped)
+            raise RuntimeError(
+                f"{merchant}: {drop_pct:.0f}% of scraped items dropped "
+                f"({result.scraped - result.normalised}/{result.scraped}) — "
+                "likely indicates >30% prices missing. Aborting to preserve last known data."
+            )
 
         wines, offers = upsert_batch(pairs)
         result.wines_upserted  = wines

@@ -44,6 +44,8 @@ import logging
 import math
 from dataclasses import dataclass, field
 
+from db_catalog import get_cheapest_by_varietal
+
 log = logging.getLogger("cellar_sage.sourcing")
 
 
@@ -866,12 +868,23 @@ def find_raw_candidates(
     and partner flag populated.  Partner filter and boost are applied here
     before results reach the middleware interceptor."""
     results: list[MerchantResult] = []
+    live_prices = get_cheapest_by_varietal("liquorland")
 
     for merchant in MERCHANT_CATALOG:
         if wine_name not in merchant.wines:
             continue
         product    = merchant.wines[wine_name]
         wine_price = product.price_aud if product.price_aud > 0.0 else merchant.price_aud
+
+        # Override with live scraped price for Coles Liquor Group merchants
+        if merchant.commercial_group == "coles_liquor" and wine_name in live_prices:
+            live = live_prices[wine_name]
+            log.info(
+                "[LivePrice] %-35s  %s  $%.2f → $%.2f (scraped)",
+                merchant.name, wine_name, wine_price, live["price"],
+            )
+            wine_price = live["price"]
+
         if not (budget_min <= wine_price <= budget_max):
             log.info(
                 "[Budget Gate] EXCLUDED  %-35s  $%.2f outside budget $%.2f–$%.2f",

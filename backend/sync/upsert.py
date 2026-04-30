@@ -53,8 +53,8 @@ def _upsert_offer(cur, wine_id: int, offer: MerchantOffer) -> None:
         INSERT INTO merchant_offers (wine_id, retailer, price, url, last_updated)
         VALUES (%s, %s, %s, %s, %s)
         ON CONFLICT (wine_id, retailer) DO UPDATE
-            SET price        = EXCLUDED.price,
-                url          = EXCLUDED.url,
+            SET price        = COALESCE(EXCLUDED.price, merchant_offers.price),
+                url          = COALESCE(EXCLUDED.url, merchant_offers.url),
                 last_updated = EXCLUDED.last_updated
         """,
         (wine_id, offer.retailer, offer.price, offer.url, offer.last_updated),
