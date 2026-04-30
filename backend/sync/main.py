@@ -1,4 +1,3 @@
-import sys as _sys; print(f"=== sync/main.py LOADED from {__file__} (Python {_sys.version}) ===", flush=True)
 """
 Cellar Sage Cloud-Sync Engine — entry point.
 
@@ -40,20 +39,20 @@ def sync_merchant(merchant: str, cfg: dict) -> SyncResult:
         page_size  = base_input.get("show", max_items)
         all_raw: list = []
 
-        print(f"[PAGES] {merchant}: pages={pages}, max_items={max_items}, page_size={page_size}", flush=True)
+        log.info("%s: pagination cfg — pages=%d max_items=%d page_size=%d", merchant, pages, max_items, page_size)
 
         for page in range(1, pages + 1):
             actor_input = {**base_input, "page": page}
-            print(f"[PAGES] {merchant}: starting page {page}/{pages}", flush=True)
+            log.info("%s: fetching page %d/%d", merchant, page, pages)
             page_raw = run_actor(
                 actor_id=cfg["actor_id"],
                 actor_input=actor_input,
                 max_items=max_items,
             )
             all_raw.extend(page_raw)
-            print(f"[PAGES] {merchant}: page {page}/{pages} returned {len(page_raw)} items (total so far: {len(all_raw)})", flush=True)
+            log.info("%s: page %d/%d → %d items (running total: %d)", merchant, page, pages, len(page_raw), len(all_raw))
             if len(page_raw) < page_size:
-                print(f"[PAGES] {merchant}: short page — stopping after page {page}", flush=True)
+                log.info("%s: short page — no more pages after %d", merchant, page)
                 break
 
         raw = all_raw
