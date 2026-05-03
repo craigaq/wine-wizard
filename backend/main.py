@@ -349,14 +349,15 @@ def recommend(req: RecommendRequest):
 def wine_picks(
     varietal: str = Query(..., description="Canonical varietal name (e.g. 'Sauvignon Blanc')"),
     user_state: Optional[str] = Query(None, description="User's Australian state (e.g. 'SA') for Tier 1 filtering"),
+    budget_max: float = Query(9999.0, ge=0, description="Maximum price in AUD"),
 ):
     """
-    Return up to 3 tiered Liquorland picks for a given varietal.
-    Tier 1 = cheapest Australian (state-filtered), Tier 2 = next cheapest Australian,
-    Tier 3 = cheapest non-Australian.
+    Return up to 3 tiered Liquorland picks for a given varietal, filtered by budget.
+    Tier 1 = best-value Australian (state-filtered), Tier 2 = next best-value Australian,
+    Tier 3 = best-value non-Australian.
     """
     from db_catalog import get_wine_picks
-    picks = get_wine_picks(varietal=varietal, user_state=user_state)
+    picks = get_wine_picks(varietal=varietal, user_state=user_state, budget_max=budget_max)
     return WinePicksResponse(varietal=varietal, picks=[WinePick(**p) for p in picks])
 
 

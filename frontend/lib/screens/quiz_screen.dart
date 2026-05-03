@@ -1087,6 +1087,7 @@ class _WineResultCardState extends State<_WineResultCard> {
                         MaterialPageRoute(
                           builder: (_) => WinePicksScreen(
                             varietal: widget.wine.varietal,
+                            budgetMax: widget.budgetMax,
                           ),
                         ),
                       ),

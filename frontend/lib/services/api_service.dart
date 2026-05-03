@@ -119,8 +119,12 @@ class ApiService {
   Future<WinePicksResponse> winePicks({
     required String varietal,
     String? userState,
+    double budgetMax = 9999.0,
   }) async {
-    final params = <String, String>{'varietal': varietal};
+    final params = <String, String>{
+      'varietal': varietal,
+      'budget_max': '$budgetMax',
+    };
     if (userState != null) params['user_state'] = userState;
     final uri = Uri.parse('$_baseUrl/wine-picks').replace(queryParameters: params);
     final response = await http.get(uri);

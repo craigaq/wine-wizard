@@ -233,14 +233,15 @@ def get_wine_picks(
     varietal: str,
     user_state: str | None = None,
     retailer: str = "liquorland",
+    budget_max: float = 9999.0,
 ) -> list[dict]:
     """
-    Return up to 3 tiered wine picks for a canonical varietal:
-    - Tier 1 (Local Hero): cheapest Australian wine, state-filtered when user_state is provided
-    - Tier 2 (National Contender): next cheapest distinct Australian wine
-    - Tier 3 (Internationalist): cheapest non-Australian wine
+    Return up to 3 tiered wine picks for a canonical varietal, filtered to budget_max.
+    - Tier 1 (Local Hero): best-value Australian wine, state-filtered when user_state is provided
+    - Tier 2 (National Contender): next best-value distinct Australian wine
+    - Tier 3 (Internationalist): best-value non-Australian wine
     """
-    cache_key = (varietal, user_state, retailer)
+    cache_key = (varietal, user_state, retailer, budget_max)
     cached = _PICKS_CACHE.get(cache_key)
     if cached and (time.time() - cached["ts"]) < _TTL_SECONDS:
         return cached["data"]
@@ -263,7 +264,7 @@ def get_wine_picks(
         f"LOWER(w.varietal) LIKE %s OR LOWER(w.name) LIKE %s"
         for _ in keywords
     )
-    params: list = [retailer, MIN_PRICE_AUD]
+    params: list = [retailer, MIN_PRICE_AUD, budget_max]
     for kw in keywords:
         params.extend([f"%{kw}%", f"%{kw}%"])
 
@@ -279,6 +280,7 @@ def get_wine_picks(
                 JOIN wines w ON w.id = mo.wine_id
                 WHERE mo.retailer = %s
                   AND mo.price >= %s
+                  AND mo.price <= %s
                   AND ({like_clauses})
                 GROUP BY w.id, w.name, w.country, w.state, w.region, w.varietal
                 LIMIT 100

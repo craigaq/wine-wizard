@@ -19,8 +19,13 @@ const _tierIcons = {
 
 class WinePicksScreen extends StatefulWidget {
   final String varietal;
+  final double budgetMax;
 
-  const WinePicksScreen({super.key, required this.varietal});
+  const WinePicksScreen({
+    super.key,
+    required this.varietal,
+    this.budgetMax = 9999.0,
+  });
 
   @override
   State<WinePicksScreen> createState() => _WinePicksScreenState();
@@ -43,7 +48,10 @@ class _WinePicksScreenState extends State<WinePicksScreen> {
       _error   = null;
     });
     try {
-      final response = await ApiService().winePicks(varietal: widget.varietal);
+      final response = await ApiService().winePicks(
+        varietal: widget.varietal,
+        budgetMax: widget.budgetMax,
+      );
       if (mounted) setState(() { _response = response; _loading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
