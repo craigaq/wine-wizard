@@ -22,6 +22,13 @@ from .normalizer import normalize
 from .scraper import run_actor
 from .upsert import upsert_batch
 
+_DIRECT_SCRAPERS: dict = {}
+
+
+def _load_direct_scrapers():
+    from .scraper_cellarbrations import scrape_cellarbrations
+    _DIRECT_SCRAPERS["cellarbrations"] = scrape_cellarbrations
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
@@ -34,32 +41,40 @@ def sync_merchant(merchant: str, cfg: dict) -> SyncResult:
     result = SyncResult(merchant=merchant)
 
     try:
-        pages      = cfg.get("pages", 1)
-        max_items  = cfg.get("max_items", 50)
-        base_input = cfg.get("actor_input", {})
-        # page_size is the number of items a full page returns — used to detect
-        # end-of-catalogue (a page shorter than this means no more pages exist).
-        page_size  = base_input.get("show", max_items)
-        all_raw: list = []
+        scraper_type = cfg.get("scraper_type", "apify")
 
-        log.info("%s: pagination cfg — pages=%d max_items=%d page_size=%d", merchant, pages, max_items, page_size)
+        if scraper_type == "direct":
+            scrape_fn = _DIRECT_SCRAPERS.get(merchant)
+            if not scrape_fn:
+                raise RuntimeError(f"No direct scraper registered for {merchant!r}")
+            raw = scrape_fn()
+            result.scraped = len(raw)
 
-        for page in range(1, pages + 1):
-            actor_input = {**base_input, "page": page}
-            log.info("%s: fetching page %d/%d", merchant, page, pages)
-            page_raw = run_actor(
-                actor_id=cfg["actor_id"],
-                actor_input=actor_input,
-                max_items=max_items,
-            )
-            all_raw.extend(page_raw)
-            log.info("%s: page %d/%d → %d items (running total: %d)", merchant, page, pages, len(page_raw), len(all_raw))
-            if len(page_raw) < page_size:
-                log.info("%s: short page — no more pages after %d", merchant, page)
-                break
+        else:
+            pages      = cfg.get("pages", 1)
+            max_items  = cfg.get("max_items", 50)
+            base_input = cfg.get("actor_input", {})
+            page_size  = base_input.get("show", max_items)
+            all_raw: list = []
 
-        raw = all_raw
-        result.scraped = len(raw)
+            log.info("%s: pagination cfg — pages=%d max_items=%d page_size=%d", merchant, pages, max_items, page_size)
+
+            for page in range(1, pages + 1):
+                actor_input = {**base_input, "page": page}
+                log.info("%s: fetching page %d/%d", merchant, page, pages)
+                page_raw = run_actor(
+                    actor_id=cfg["actor_id"],
+                    actor_input=actor_input,
+                    max_items=max_items,
+                )
+                all_raw.extend(page_raw)
+                log.info("%s: page %d/%d → %d items (running total: %d)", merchant, page, pages, len(page_raw), len(all_raw))
+                if len(page_raw) < page_size:
+                    log.info("%s: short page — no more pages after %d", merchant, page)
+                    break
+
+            raw = all_raw
+            result.scraped = len(raw)
 
         pairs = normalize(raw, merchant)
         result.normalised = len(pairs)
@@ -84,6 +99,7 @@ def sync_merchant(merchant: str, cfg: dict) -> SyncResult:
 
 
 def main() -> int:
+    _load_direct_scrapers()
     log.info("=== Cellar Sage Sync Engine starting ===")
     results: list[SyncResult] = []
     any_error = False

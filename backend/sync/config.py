@@ -4,6 +4,10 @@ Add new merchants here; the scrape manager picks them up automatically.
 """
 
 MERCHANT_REGISTRY: dict = {
+    "cellarbrations": {
+        "scraper_type": "direct",          # uses scraper_cellarbrations, not Apify
+        "enabled": True,
+    },
     "liquorland": {
         "actor_id": "dromb/liquorland-au-catalog-product-lookup-unofficial",
         "max_items": 50,   # per-page cap; actor hard-limits to 50 per call

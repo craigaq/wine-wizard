@@ -119,8 +119,8 @@ def _matches_catalog(varietal: Optional[str], name: str) -> bool:
 # Standard 750ml bottles often omit the size entirely, so we reject only
 # explicit non-standard sizes rather than requiring "750ml" to be present.
 _NON_STD_SIZE_RE = re.compile(
-    r'\b(375\s?m[lL]|187\s?m[lL]|1[.·]5\s?[lL]|1500\s?m[lL]'
-    r'|[2-9]\s?[lL]|[2-9]000\s?m[lL])\b',
+    r'(?<![0-9])(375\s?m[lL]|187\s?m[lL]|1[.·]5\s?[lL]|1500\s?m[lL]'
+    r'|1\s?[lL](?!\s?[0-9])|1000\s?m[lL]|[2-9]\s?[lL]|[2-9]000\s?m[lL])',
     re.IGNORECASE,
 )
 
@@ -204,6 +204,45 @@ def _normalize_liquorland(item: dict, retailer: str) -> Optional[tuple[WineRecor
     return wine, offer
 
 
+def _normalize_cellarbrations(item: dict, retailer: str) -> Optional[tuple[WineRecord, MerchantOffer]]:
+    name = _first("name", src=item)
+    if not name:
+        return None
+
+    price = _coerce_price(_first("priceNumeric", "wholePrice", "price", src=item))
+    if price is None or price <= 0:
+        return None
+
+    if not _is_standard_bottle(name, item):
+        log.debug("cellarbrations item skipped — non-standard bottle size: %r", name)
+        return None
+
+    # Varietal from the API's category data
+    def_cats = item.get("defaultCategory") or []
+    varietal_raw = def_cats[0].get("category") if def_cats else None
+    varietal = _first("varietal", src=item) or varietal_raw
+    if varietal and varietal.lower() in ("grocery", "alcohol", "wine"):
+        varietal = None
+
+    if not _matches_catalog(varietal, name):
+        log.debug("cellarbrations item skipped — not in known catalog: %r", name)
+        return None
+
+    vintage    = _extract_vintage(name)
+    clean_name = re.sub(r'\s*\b(19[89]\d|20[012]\d)\b\s*', ' ', name).strip()
+    url        = item.get("url")
+    country, state = _infer_origin(clean_name)
+
+    if varietal is None:
+        varietal = _infer_varietal(clean_name)
+
+    wine  = WineRecord(name=clean_name, vintage=vintage, varietal=varietal,
+                       country=country, state=state)
+    offer = MerchantOffer(wine_name=clean_name, vintage=vintage,
+                          retailer=retailer, price=price, url=url)
+    return wine, offer
+
+
 def _normalize_danmurphys(item: dict, retailer: str) -> Optional[tuple[WineRecord, MerchantOffer]]:
     name = _first('name', 'title', 'productName', src=item)
     if not name:
@@ -237,6 +276,7 @@ def _normalize_danmurphys(item: dict, retailer: str) -> Optional[tuple[WineRecor
 
 _NORMALIZERS = {
     "liquorland": _normalize_liquorland,
+    "cellarbrations": _normalize_cellarbrations,
     "danmurphys": _normalize_danmurphys,
 }
 
