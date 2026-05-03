@@ -332,6 +332,8 @@ def get_wine_picks(
                     WHERE price IS NOT NULL
                       AND price >= %s
                       AND price <= %s
+                      AND url IS NOT NULL
+                      AND url != ''
                     ORDER BY wine_id, price ASC
                 )
                 SELECT w.name, w.country, w.state, w.region, w.varietal,
@@ -422,6 +424,14 @@ def get_wine_picks(
     for r in int_rows:
         if r["name"] not in seen:
             picks.append(_row_to_pick(r, 3, "The Internationalist"))
+            seen.add(r["name"])
+            break
+
+    # Tier 4 — The Deal: absolute cheapest wine not already picked
+    deal_pool = sorted(all_rows, key=lambda r: float(r.get("price") or 9999))
+    for r in deal_pool:
+        if r["name"] not in seen:
+            picks.append(_row_to_pick(r, 4, "The Deal"))
             break
 
     _PICKS_CACHE[cache_key] = {"data": picks, "ts": time.time()}

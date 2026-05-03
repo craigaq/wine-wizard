@@ -236,6 +236,20 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
+  void _skipToSip() {
+    setState(() {
+      _foodPairing = 'none';
+      _overrideMode = 'use_pairing_logic';
+      _pairingMode = 'congruent';
+    });
+    _fetchResults();
+    _controller.animateToPage(
+      _totalPages - 1,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+
   void _startOver() {
     setState(() {
       _crispness = 3;
@@ -428,30 +442,45 @@ class _QuizScreenState extends State<QuizScreen> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (!isFirst)
-              OutlinedButton.icon(
-                onPressed: _goBack,
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Back'),
-              )
-            else
-              const SizedBox.shrink(),
-            if (isLast)
-              TextButton.icon(
-                onPressed: _startOver,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Start Over'),
-              )
-            else
-              FilledButton.icon(
-                onPressed: _goNext,
-                label: Text(_currentPage == 7 ? 'Find My Wine!' : 'Next'),
-                icon: const Icon(Icons.arrow_forward),
-                iconAlignment: IconAlignment.end,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (!isFirst)
+                  OutlinedButton.icon(
+                    onPressed: _goBack,
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back'),
+                  )
+                else
+                  const SizedBox.shrink(),
+                if (isLast)
+                  TextButton.icon(
+                    onPressed: _startOver,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Start Over'),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: _goNext,
+                    label: Text(_currentPage == 7 ? 'Find My Wine!' : 'Next'),
+                    icon: const Icon(Icons.arrow_forward),
+                    iconAlignment: IconAlignment.end,
+                  ),
+              ],
+            ),
+            if (_currentPage == 4) ...[
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: _skipToSip,
+                child: Text(
+                  'Skip to Sip →',
+                  style: WwText.bodySmall().copyWith(color: WwColors.violetMuted),
+                ),
               ),
+            ],
           ],
         ),
       ),

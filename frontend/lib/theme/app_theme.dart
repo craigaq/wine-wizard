@@ -51,6 +51,7 @@ abstract final class WwColors {
   static const tierLocal    = Color(0xFF1A6B4A);  // Local Hero — deep emerald
   static const tierNational = Color(0xFF1A4C8A);  // National Rival — rich blue
   static const tierGlobal   = Color(0xFF5C2E8A);  // Global Icon — deep purple
+  static const tierDeal     = Color(0xFF7A5200);  // The Deal — deep amber/gold
 
   // ── Semantic ─────────────────────────────────────────────────────────────
   static const error   = Color(0xFFCF6679);

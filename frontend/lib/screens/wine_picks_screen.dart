@@ -9,12 +9,14 @@ const _tierColors = {
   1: WwColors.tierLocal,
   2: WwColors.tierNational,
   3: WwColors.tierGlobal,
+  4: WwColors.tierDeal,
 };
 
 const _tierIcons = {
   1: Icons.home_outlined,
   2: Icons.flag_outlined,
   3: Icons.public,
+  4: Icons.local_offer_outlined,
 };
 
 class WinePicksScreen extends StatefulWidget {
@@ -145,7 +147,7 @@ class _WinePicksScreenState extends State<WinePicksScreen> {
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Text(
-            'Three picks — one for every palate.',
+            'Four picks — one for every palate.',
             style: WwText.bodyMedium(),
             textAlign: TextAlign.center,
           ),
@@ -181,9 +183,23 @@ class _PickCard extends StatelessWidget {
               children: [
                 Icon(icon, color: Colors.white, size: 15),
                 const SizedBox(width: 8),
-                Text(
-                  pick.tierLabel.toUpperCase(),
-                  style: WwText.badgeLabel(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pick.tierLabel.toUpperCase(),
+                      style: WwText.badgeLabel(),
+                    ),
+                    if (pick.tier == 4)
+                      Text(
+                        'Lowest price found',
+                        style: WwText.badgeLabel().copyWith(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white70,
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
