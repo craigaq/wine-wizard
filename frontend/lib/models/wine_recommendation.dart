@@ -107,12 +107,14 @@ class BuyOption {
   final String name;
   final double price;
   final String url;
+  final String retailer;
 
-  BuyOption({required this.name, required this.price, required this.url});
+  BuyOption({required this.name, required this.price, required this.url, this.retailer = ''});
 
   factory BuyOption.fromJson(Map<String, dynamic> json) => BuyOption(
-    name:  json['name']  as String,
-    price: (json['price'] as num).toDouble(),
-    url:   json['url']   as String,
+    name:     json['name']  as String,
+    price:    (json['price'] as num).toDouble(),
+    url:      json['url']   as String,
+    retailer: (json['retailer'] as String?) ?? '',
   );
 }

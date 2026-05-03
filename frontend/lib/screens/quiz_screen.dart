@@ -1168,7 +1168,7 @@ class _WhereToBuySection extends StatelessWidget {
 
     if (buyOptions == null || buyOptions!.isEmpty) {
       return Text(
-        'No Liquorland listings found for $varietal.',
+        'No listings found in our catalogue for $varietal.',
         style: WwText.bodySmall(color: WwColors.textDisabled),
       );
     }
@@ -1221,7 +1221,7 @@ class _BuyOptionRow extends StatelessWidget {
                 }
               },
               child: Text(
-                'Buy',
+                _retailerShortName(option.retailer),
                 style: WwText.labelLarge(color: WwColors.violet),
               ),
             ),
@@ -1229,6 +1229,13 @@ class _BuyOptionRow extends StatelessWidget {
       ),
     );
   }
+
+  String _retailerShortName(String retailer) => switch (retailer) {
+    'liquorland'     => 'Liquorland',
+    'cellarbrations' => 'Cellarbrations',
+    'danmurphys'     => "Dan Murphy's",
+    _                => 'Buy',
+  };
 }
 
 // ---------------------------------------------------------------------------

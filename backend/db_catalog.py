@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 _TTL_SECONDS    = 3600
 MIN_PRICE_AUD   = 10.0   # filter out bulk/cask wines below this threshold
 
-# Module-level cache: retailer → {"data": dict, "ts": float}
+# Module-level cache: key → {"data": dict, "ts": float}
 _CACHE: dict[str, dict] = {}
 
 # Maps lowercase keywords (longest first) → canonical catalog varietal name.
@@ -82,7 +82,7 @@ def _keywords_for_canonical(canonical: str) -> list[str]:
     return [kw for kw, can in _VARIETAL_KEYWORDS if can == canonical]
 
 
-# Module-level cache for buy-options queries: (varietal, retailer) → {"data": list, "ts": float}
+# Module-level cache for buy-options and picks queries
 _BUY_CACHE: dict[tuple, dict] = {}
 _PICKS_CACHE: dict[tuple, dict] = {}
 
@@ -156,17 +156,14 @@ def get_cheapest_by_varietal(retailer: str = "liquorland") -> dict[str, dict]:
 def get_buy_options(
     varietal: str,
     budget_max_aud: float = 9999.0,
-    retailer: str = "liquorland",
 ) -> list[dict]:
     """
-    Return all matching Liquorland offers for a canonical varietal name.
+    Return all matching offers (all retailers) for a canonical varietal name,
+    one row per wine showing the cheapest available price and its retailer.
 
-    Result shape: [{"name": "...", "price": 18.99, "url": "..."}]
-
-    Uses reverse keyword mapping to find all DB rows whose varietal or name
-    contains any keyword that maps to the requested canonical varietal.
+    Result shape: [{"name": "...", "price": 18.99, "url": "...", "retailer": "..."}]
     """
-    cache_key = (varietal, retailer, budget_max_aud)
+    cache_key = (varietal, budget_max_aud)
     cached = _BUY_CACHE.get(cache_key)
     if cached and (time.time() - cached["ts"]) < _TTL_SECONDS:
         return cached["data"]
@@ -183,12 +180,11 @@ def get_buy_options(
     if not conn:
         return _BUY_CACHE.get(cache_key, {}).get("data", [])
 
-    # Build dynamic OR clause: each keyword checked against varietal and name columns
     like_clauses = " OR ".join(
         f"LOWER(w.varietal) LIKE %s OR LOWER(w.name) LIKE %s"
         for _ in keywords
     )
-    params: list = [retailer, MIN_PRICE_AUD, budget_max_aud]
+    params: list = [MIN_PRICE_AUD, budget_max_aud]
     for kw in keywords:
         params.extend([f"%{kw}%", f"%{kw}%"])
 
@@ -196,16 +192,20 @@ def get_buy_options(
         with conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT w.name, MIN(mo.price) AS price, MAX(mo.url) AS url
-                FROM merchant_offers mo
-                JOIN wines w ON w.id = mo.wine_id
-                WHERE mo.retailer = %s
-                  AND mo.price IS NOT NULL
-                  AND mo.price >= %s
-                  AND mo.price <= %s
-                  AND ({like_clauses})
-                GROUP BY w.name
-                ORDER BY MIN(mo.price) ASC
+                WITH cheapest AS (
+                    SELECT DISTINCT ON (wine_id)
+                        wine_id, price, url, retailer
+                    FROM merchant_offers
+                    WHERE price IS NOT NULL
+                      AND price >= %s
+                      AND price <= %s
+                    ORDER BY wine_id, price ASC
+                )
+                SELECT w.name, c.price, c.url, c.retailer
+                FROM cheapest c
+                JOIN wines w ON w.id = c.wine_id
+                WHERE ({like_clauses})
+                ORDER BY c.price ASC
                 LIMIT 20
                 """,
                 params,
@@ -218,36 +218,37 @@ def get_buy_options(
         conn.close()
 
     result = [
-        {"name": row["name"], "price": float(row["price"]), "url": row["url"] or ""}
+        {
+            "name": row["name"],
+            "price": float(row["price"]),
+            "url": row["url"] or "",
+            "retailer": row["retailer"] or "",
+        }
         for row in rows
     ]
     _BUY_CACHE[cache_key] = {"data": result, "ts": time.time()}
-    log.info(
-        "db_catalog: get_buy_options varietal='%s' retailer=%s → %d results",
-        varietal, retailer, len(result),
-    )
+    log.info("db_catalog: get_buy_options varietal='%s' → %d results", varietal, len(result))
     return result
 
 
 def get_wine_picks(
     varietal: str,
     user_state: str | None = None,
-    retailer: str = "liquorland",
     budget_max: float = 9999.0,
 ) -> list[dict]:
     """
     Return up to 3 tiered wine picks for a canonical varietal, filtered to budget_max.
+    Queries all retailers; each wine shows its cheapest available price.
     - Tier 1 (Local Hero): best-value Australian wine, state-filtered when user_state is provided
     - Tier 2 (National Contender): next best-value distinct Australian wine
     - Tier 3 (Internationalist): best-value non-Australian wine
     """
-    cache_key = (varietal, user_state, retailer, budget_max)
+    cache_key = (varietal, user_state, budget_max)
     cached = _PICKS_CACHE.get(cache_key)
     if cached and (time.time() - cached["ts"]) < _TTL_SECONDS:
         return cached["data"]
 
     # Accept either a canonical name ("Syrah/Shiraz") or a common alias ("Shiraz").
-    # Try the supplied string first; if it doesn't match, infer the canonical form.
     keywords = _keywords_for_canonical(varietal)
     if not keywords:
         canonical = _infer_varietal(None, varietal) or varietal
@@ -264,7 +265,7 @@ def get_wine_picks(
         f"LOWER(w.varietal) LIKE %s OR LOWER(w.name) LIKE %s"
         for _ in keywords
     )
-    params: list = [retailer, MIN_PRICE_AUD, budget_max]
+    params: list = [MIN_PRICE_AUD, budget_max]
     for kw in keywords:
         params.extend([f"%{kw}%", f"%{kw}%"])
 
@@ -272,17 +273,21 @@ def get_wine_picks(
         with conn.cursor() as cur:
             cur.execute(
                 f"""
+                WITH cheapest AS (
+                    SELECT DISTINCT ON (wine_id)
+                        wine_id, price, url, retailer, rating, review_count
+                    FROM merchant_offers
+                    WHERE price IS NOT NULL
+                      AND price >= %s
+                      AND price <= %s
+                    ORDER BY wine_id, price ASC
+                )
                 SELECT w.name, w.country, w.state, w.region, w.varietal,
-                       MIN(mo.price) AS price, MAX(mo.url) AS url,
-                       MAX(mo.rating) AS rating,
-                       MAX(mo.review_count) AS review_count
-                FROM merchant_offers mo
-                JOIN wines w ON w.id = mo.wine_id
-                WHERE mo.retailer = %s
-                  AND mo.price >= %s
-                  AND mo.price <= %s
-                  AND ({like_clauses})
-                GROUP BY w.id, w.name, w.country, w.state, w.region, w.varietal
+                       c.price, c.url, c.retailer, c.rating, c.review_count
+                FROM cheapest c
+                JOIN wines w ON w.id = c.wine_id
+                WHERE ({like_clauses})
+                ORDER BY c.price ASC
                 LIMIT 100
                 """,
                 params,
@@ -322,6 +327,7 @@ def get_wine_picks(
             "state": r.get("state"), "region": r.get("region"),
             "varietal": r.get("varietal"),
             "price": float(r["price"]), "url": r.get("url") or "",
+            "retailer": r.get("retailer") or "",
             "rating": float(r["rating"]) if r.get("rating") is not None else None,
             "review_count": int(r.get("review_count") or 0),
         }

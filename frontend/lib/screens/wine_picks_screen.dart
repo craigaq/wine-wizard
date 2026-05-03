@@ -129,7 +129,7 @@ class _WinePicksScreenState extends State<WinePicksScreen> {
               const Text('😬', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 16),
               Text(
-                'No ${widget.varietal} listings found in Liquorland right now.',
+                'No ${widget.varietal} listings found right now.',
                 textAlign: TextAlign.center,
                 style: WwText.bodyMedium(),
               ),
@@ -225,12 +225,12 @@ class _PickCard extends StatelessWidget {
                       ? FilledButton.icon(
                           onPressed: () => _launch(pick.url),
                           icon: const Icon(Icons.open_in_new, size: 15),
-                          label: const Text('Buy on Liquorland'),
+                          label: Text('Buy on ${_retailerLabel(pick.retailer)}'),
                         )
                       : OutlinedButton.icon(
-                          onPressed: () => _launch('https://www.liquorland.com.au'),
+                          onPressed: () => _launch(_retailerUrl(pick.retailer)),
                           icon: const Icon(Icons.search, size: 15),
-                          label: const Text('Browse Liquorland'),
+                          label: Text('Browse ${_retailerLabel(pick.retailer)}'),
                         ),
                 ),
               ],
@@ -263,6 +263,19 @@ class _PickCard extends StatelessWidget {
     'NT'  => 'Northern Territory',
     'ACT' => 'ACT',
     _     => code,
+  };
+
+  String _retailerLabel(String retailer) => switch (retailer) {
+    'liquorland'     => 'Liquorland',
+    'cellarbrations' => 'Cellarbrations',
+    'danmurphys'     => 'Dan Murphy\'s',
+    _                => retailer.isNotEmpty ? retailer : 'retailer',
+  };
+
+  String _retailerUrl(String retailer) => switch (retailer) {
+    'cellarbrations' => 'https://www.cellarbrations.com.au/wine',
+    'danmurphys'     => 'https://www.danmurphys.com.au',
+    _                => 'https://www.liquorland.com.au',
   };
 
   Future<void> _launch(String url) async {

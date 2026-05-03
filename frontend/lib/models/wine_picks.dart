@@ -8,6 +8,7 @@ class WinePick {
   final String? region;
   final double price;
   final String url;
+  final String retailer;
   final double? rating;
   final int reviewCount;
 
@@ -21,6 +22,7 @@ class WinePick {
     this.region,
     required this.price,
     required this.url,
+    this.retailer = '',
     this.rating,
     this.reviewCount = 0,
   });
@@ -35,6 +37,7 @@ class WinePick {
         region:      json['region'] as String?,
         price:       (json['price'] as num).toDouble(),
         url:         (json['url'] as String?) ?? '',
+        retailer:    (json['retailer'] as String?) ?? '',
         rating:      json['rating'] != null ? (json['rating'] as num).toDouble() : null,
         reviewCount: (json['review_count'] as int?) ?? 0,
       );

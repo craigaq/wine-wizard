@@ -170,6 +170,7 @@ class BuyOption(BaseModel):
     name: str
     price: float
     url: str
+    retailer: str = ""
 
 
 class WinePick(BaseModel):
@@ -182,6 +183,7 @@ class WinePick(BaseModel):
     region: Optional[str]
     price: float
     url: str
+    retailer: str = ""
     rating: Optional[float] = None
     review_count: int = 0
 
