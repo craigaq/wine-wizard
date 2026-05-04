@@ -10,7 +10,7 @@ class ApiService {
   // Debug → Android emulator loopback. Release → production FastAPI host.
   // Set CELLARSAGE_API_URL in your CI/CD environment to override the prod URL.
   static final String _baseUrl = kReleaseMode
-      ? 'https://api.cellarsage.app'
+      ? 'https://cellarsage-api.fly.dev'
       : 'http://10.0.2.2:8002';
 
   Future<String> fetchHello() async {
