@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/wine_recommendation.dart';
 import '../services/api_service.dart';
+import '../services/palate_prefs.dart';
 import '../screens/wine_picks_screen.dart';
 import '../services/currency_service.dart';
 import '../theme/app_theme.dart';
@@ -274,6 +275,15 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _fetchResults() async {
+    PalatePrefs.save(
+      crispness:   _crispness,
+      weight:      _weight,
+      texture:     _texture,
+      flavor:      _flavor,
+      foodPairing: _foodPairing,
+      budgetIndex: _budgetIndex,
+      prefDry:     _prefDry,
+    );
     setState(() {
       _loading = true;
       _error = null;
@@ -356,6 +366,19 @@ class _QuizScreenState extends State<QuizScreen> {
     super.initState();
     CurrencyService.detectCodeFromGps().then((code) {
       if (mounted) setState(() => _currencyCode = code);
+    });
+    PalatePrefs.load().then((snap) {
+      if (snap != null && mounted) {
+        setState(() {
+          _crispness   = snap.crispness;
+          _weight      = snap.weight;
+          _texture     = snap.texture;
+          _flavor      = snap.flavor;
+          _foodPairing = snap.foodPairing;
+          _budgetIndex = snap.budgetIndex;
+          _prefDry     = snap.prefDry;
+        });
+      }
     });
   }
 
