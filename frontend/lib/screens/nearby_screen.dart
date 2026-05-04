@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/merchant.dart';
@@ -58,19 +60,33 @@ class _NearbyScreenState extends State<NearbyScreen> {
   String? _error;
   bool _showGlobalTier = false;
 
+  // Map state
+  GoogleMapController? _mapController;
+  LatLng? _userLatLng;
+  final Map<MarkerId, Marker> _markers = {};
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _error   = null;
+      _markers.clear();
     });
     try {
       final position = await LocationService().getCurrentPosition();
+      final userLatLng = LatLng(position.latitude, position.longitude);
+
       final response = await ApiService().nearby(
         wineName:       widget.wineName,
         userLat:        position.latitude,
@@ -80,15 +96,49 @@ class _NearbyScreenState extends State<NearbyScreen> {
         showGlobalTier: _showGlobalTier,
         currencyCode:   widget.currencyCode,
       );
-      setState(() {
-        _response = response;
-        _loading  = false;
-      });
+
+      // Geocode merchant addresses to place map pins
+      final markers = <MarkerId, Marker>{};
+      final allMerchants = response.tiers
+          .expand((t) => t.allMatches)
+          .where((m) => !m.isOnlineOnly && m.address.isNotEmpty)
+          .toList();
+
+      for (int i = 0; i < allMerchants.length; i++) {
+        final merchant = allMerchants[i];
+        try {
+          final locations = await locationFromAddress(
+            '${merchant.address}, Australia',
+          );
+          if (locations.isNotEmpty) {
+            final id = MarkerId('merchant_$i');
+            markers[id] = Marker(
+              markerId: id,
+              position: LatLng(locations.first.latitude, locations.first.longitude),
+              infoWindow: InfoWindow(
+                title: merchant.name,
+                snippet: 'A\$${merchant.priceLocal.toStringAsFixed(2)}',
+              ),
+            );
+          }
+        } catch (_) {
+          // Skip merchants whose address can't be geocoded
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _response    = response;
+          _loading     = false;
+          _userLatLng  = userLatLng;
+          _markers.addAll(markers);
+        });
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(userLatLng, 12),
+        );
+      }
     } catch (e) {
-      setState(() {
-        _error   = e.toString();
-        _loading = false;
-      });
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
@@ -178,6 +228,34 @@ class _NearbyScreenState extends State<NearbyScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
+        // In-app map — shows user position + merchant pins
+        if (_userLatLng != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                height: 250,
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: _userLatLng!,
+                    zoom: 12,
+                  ),
+                  markers: Set<Marker>.of(_markers.values),
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                    _mapController!.animateCamera(
+                      CameraUpdate.newLatLngZoom(_userLatLng!, 12),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
         // Pricing Precedent banner
         if (_response!.pricingPrecedentApplied && !_showGlobalTier)
           Padding(
