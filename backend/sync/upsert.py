@@ -28,22 +28,41 @@ def _upsert_wine(cur, wine: WineRecord) -> int:
     """
     Insert wine if it doesn't exist, or update region/varietal/country if they were
     previously NULL. Returns the wine's id.
+
+    Uses two partial unique indexes (created by migrate_null_vintage.py):
+      - wines_name_vintage_idx     ON (name, vintage) WHERE vintage IS NOT NULL
+      - wines_name_null_vintage_idx ON (name)          WHERE vintage IS NULL
     """
-    cur.execute(
-        """
-        INSERT INTO wines (name, vintage, region, varietal, country, state)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        ON CONFLICT (name, vintage) DO UPDATE
-            SET region   = COALESCE(wines.region,   EXCLUDED.region),
-                varietal = COALESCE(wines.varietal, EXCLUDED.varietal),
-                country  = COALESCE(EXCLUDED.country, wines.country),
-                state    = COALESCE(EXCLUDED.state,   wines.state)
-        RETURNING id
-        """,
-        (wine.name, wine.vintage, wine.region, wine.varietal, wine.country, wine.state),
-    )
-    row = cur.fetchone()
-    return row["id"]
+    args = (wine.name, wine.vintage, wine.region, wine.varietal, wine.country, wine.state)
+    update_clause = """
+        SET region   = COALESCE(wines.region,   EXCLUDED.region),
+            varietal = COALESCE(wines.varietal, EXCLUDED.varietal),
+            country  = COALESCE(EXCLUDED.country, wines.country),
+            state    = COALESCE(EXCLUDED.state,   wines.state)
+    """
+    if wine.vintage is not None:
+        cur.execute(
+            f"""
+            INSERT INTO wines (name, vintage, region, varietal, country, state)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (name, vintage) WHERE vintage IS NOT NULL DO UPDATE
+            {update_clause}
+            RETURNING id
+            """,
+            args,
+        )
+    else:
+        cur.execute(
+            f"""
+            INSERT INTO wines (name, vintage, region, varietal, country, state)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (name) WHERE vintage IS NULL DO UPDATE
+            {update_clause}
+            RETURNING id
+            """,
+            args,
+        )
+    return cur.fetchone()["id"]
 
 
 def _upsert_offer(cur, wine_id: int, offer: MerchantOffer) -> None:
