@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -38,14 +39,36 @@ class _SageFoxWidgetState extends State<SageFoxWidget>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _idle,
-      builder: (_, __) {
+      builder: (_, _) {
         final dy = sin(_idle.value * 2 * pi) * 5.0;
         return Transform.translate(
           offset: Offset(0, dy),
-          child: SvgPicture.asset(
-            'assets/images/sage_fox.svg',
-            width: widget.size,
-            height: widget.size,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // White glow layer: fox silhouette blurred outward behind the original.
+              ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.matrix([
+                    0, 0, 0, 0, 255,
+                    0, 0, 0, 0, 255,
+                    0, 0, 0, 0, 255,
+                    0, 0, 0, 0.55, 0,
+                  ]),
+                  child: SvgPicture.asset(
+                    'assets/images/sage_fox.svg',
+                    width: widget.size,
+                    height: widget.size,
+                  ),
+                ),
+              ),
+              SvgPicture.asset(
+                'assets/images/sage_fox.svg',
+                width: widget.size,
+                height: widget.size,
+              ),
+            ],
           ),
         );
       },

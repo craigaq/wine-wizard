@@ -5,8 +5,10 @@ every API request. Falls back silently to an empty dict when DATABASE_URL
 is not set (local dev) or the query fails.
 """
 
+import json
 import os
 import math
+import pathlib
 import time
 import logging
 from datetime import datetime, timezone, timedelta
@@ -18,43 +20,18 @@ log = logging.getLogger(__name__)
 _TTL_SECONDS    = 3600
 MIN_PRICE_AUD   = 10.0   # filter out bulk/cask wines below this threshold
 
-# ── Producer → state (mirrors sync/normalizer.py — applied at query time for
-# existing DB rows that were upserted before this mapping existed) ─────────────
-_PRODUCER_STATE: list[tuple[str, str]] = sorted([
-    ("penfolds", "SA"), ("jacob's creek", "SA"), ("jacobs creek", "SA"),
-    ("wolf blass", "SA"), ("hardys", "SA"), ("hardy's", "SA"),
-    ("yalumba", "SA"), ("oxford landing", "SA"), ("grant burge", "SA"),
-    ("st hallett", "SA"), ("peter lehmann", "SA"), ("saltram", "SA"),
-    ("seppelt", "SA"), ("d'arenberg", "SA"), ("wirra wirra", "SA"),
-    ("bleasdale", "SA"), ("pepperjack", "SA"), ("chateau tanunda", "SA"),
-    ("angove", "SA"), ("ruffled feather", "SA"), ("annies lane", "SA"),
-    ("annie's lane", "SA"), ("kilikanoon", "SA"), ("two hands", "SA"),
-    ("torbreck", "SA"), ("mitolo", "SA"), ("gemtree", "SA"),
-    ("primo estate", "SA"), ("jim barry", "SA"), ("tim adams", "SA"),
-    ("coriole", "SA"), ("henschke", "SA"), ("elderton", "SA"),
-    ("chateau reynella", "SA"), ("shut the gate", "SA"),
-    ("de bortoli", "NSW"), ("mcwilliams", "NSW"), ("mcguigan", "NSW"),
-    ("casella", "NSW"), ("yellow tail", "NSW"), ("yellowtail", "NSW"),
-    ("lindemans", "NSW"), ("lindeman's", "NSW"), ("tyrrells", "NSW"),
-    ("tyrrell's", "NSW"), ("brokenwood", "NSW"), ("hungerford hill", "NSW"),
-    ("tulloch", "NSW"), ("drayton's", "NSW"), ("draytons", "NSW"),
-    ("rosemount", "NSW"), ("wyndham", "NSW"), ("zilzie", "NSW"),
-    ("mcpherson", "NSW"),
-    ("brown brothers", "VIC"), ("tahbilk", "VIC"), ("mitchelton", "VIC"),
-    ("yellowglen", "VIC"), ("campbells", "VIC"), ("all saints", "VIC"),
-    ("yering station", "VIC"), ("punt road", "VIC"), ("balgownie", "VIC"),
-    ("mount langi ghiran", "VIC"), ("stonier", "VIC"), ("kooyong", "VIC"),
-    ("paringa estate", "VIC"),
-    ("cape mentelle", "WA"), ("leeuwin estate", "WA"), ("leeuwin", "WA"),
-    ("houghton", "WA"), ("sandalford", "WA"), ("howard park", "WA"),
-    ("vasse felix", "WA"), ("devil's lair", "WA"), ("devils lair", "WA"),
-    ("evans & tate", "WA"), ("evans and tate", "WA"), ("cullen", "WA"),
-    ("voyager estate", "WA"), ("moss wood", "WA"), ("xanadu", "WA"),
-    ("plantagenet", "WA"),
-    ("josef chromy", "TAS"), ("bay of fires", "TAS"), ("pipers brook", "TAS"),
-    ("kreglinger", "TAS"), ("moorilla", "TAS"),
-    ("sirromet", "QLD"), ("ballandean estate", "QLD"),
-], key=lambda x: -len(x[0]))
+# ── Producer → state (loaded from sync/producer_state.json) ──────────────────
+# Applied at query time for rows upserted before this mapping existed.
+# To add producers, edit the JSON file — no code change needed.
+_PRODUCER_STATE: list[tuple[str, str]] = sorted(
+    [tuple(pair) for pair in json.loads(
+        (pathlib.Path(__file__).parent / "sync" / "producer_state.json").read_text(encoding="utf-8")
+    )],
+    key=lambda x: -len(x[0]),
+)
+
+# Sweet varietal/style keywords used to filter Tier 4 when pref_dry=True.
+_SWEET_KEYWORDS = frozenset({"moscato", "muscat", "dessert", "sweet", "demi-sec", "doux"})
 
 
 def _producer_state(name: str) -> str | None:
@@ -287,15 +264,16 @@ def get_wine_picks(
     varietal: str,
     user_state: str | None = None,
     budget_max: float = 9999.0,
+    pref_dry: bool = False,
 ) -> list[dict]:
     """
-    Return up to 3 tiered wine picks for a canonical varietal, filtered to budget_max.
-    Queries all retailers; each wine shows its cheapest available price.
-    - Tier 1 (Local Hero): best-value Australian wine, state-filtered when user_state is provided
+    Return up to 4 tiered wine picks for a canonical varietal, filtered to budget_max.
+    - Tier 1 (Local Hero): best-value Australian, state-filtered when user_state provided
     - Tier 2 (National Contender): next best-value distinct Australian wine
     - Tier 3 (Internationalist): best-value non-Australian wine
+    - Tier 4 (The Deal): absolute cheapest, subject to quality floor and dry guard
     """
-    cache_key = (varietal, user_state, budget_max)
+    cache_key = (varietal, user_state, budget_max, pref_dry)
     cached = _PICKS_CACHE.get(cache_key)
     if cached and (time.time() - cached["ts"]) < _TTL_SECONDS:
         return cached["data"]
@@ -327,7 +305,7 @@ def get_wine_picks(
                 f"""
                 WITH cheapest AS (
                     SELECT DISTINCT ON (wine_id)
-                        wine_id, price, url, retailer, rating, review_count, last_updated
+                        wine_id, price, url, retailer, rating, review_count, is_member_price, last_updated
                     FROM merchant_offers
                     WHERE price IS NOT NULL
                       AND price >= %s
@@ -337,7 +315,8 @@ def get_wine_picks(
                     ORDER BY wine_id, price ASC
                 )
                 SELECT w.name, w.country, w.state, w.region, w.varietal,
-                       c.price, c.url, c.retailer, c.rating, c.review_count, c.last_updated
+                       c.price, c.url, c.retailer, c.rating, c.review_count,
+                       c.is_member_price, c.last_updated
                 FROM cheapest c
                 JOIN wines w ON w.id = c.wine_id
                 WHERE ({like_clauses})
@@ -395,6 +374,7 @@ def get_wine_picks(
             "price": float(r["price"]), "url": r.get("url") or "",
             "retailer": r.get("retailer") or "",
             "price_is_stale": stale,
+            "is_member_price": bool(r.get("is_member_price")),
             "rating": float(r["rating"]) if r.get("rating") is not None else None,
             "review_count": int(r.get("review_count") or 0),
         }
@@ -427,12 +407,26 @@ def get_wine_picks(
             seen.add(r["name"])
             break
 
-    # Tier 4 — The Deal: absolute cheapest wine not already picked
+    # Tier 4 — The Deal: cheapest wine that clears the quality floor.
+    # Quality floor: skip wines with a low rating (< 3.0) when there are enough
+    # reviews to trust the score (>= 3). This prevents a $10 one-star bottle
+    # from undermining the Sage persona.
+    # Dry guard: when pref_dry is set, skip overtly sweet styles.
     deal_pool = sorted(all_rows, key=lambda r: float(r.get("price") or 9999))
     for r in deal_pool:
-        if r["name"] not in seen:
-            picks.append(_row_to_pick(r, 4, "The Deal"))
-            break
+        if r["name"] in seen:
+            continue
+        _rating  = r.get("rating")
+        _reviews = int(r.get("review_count") or 0)
+        if _rating is not None and _reviews >= 3 and float(_rating) < 3.0:
+            continue
+        if pref_dry:
+            _name_lower = r.get("name", "").lower()
+            _var_lower  = (r.get("varietal") or "").lower()
+            if any(kw in _name_lower or kw in _var_lower for kw in _SWEET_KEYWORDS):
+                continue
+        picks.append(_row_to_pick(r, 4, "The Deal"))
+        break
 
     _PICKS_CACHE[cache_key] = {"data": picks, "ts": time.time()}
     log.info("get_wine_picks: varietal='%s' → %d picks", varietal, len(picks))

@@ -17,9 +17,10 @@ CREATE TABLE IF NOT EXISTS merchant_offers (
     retailer     TEXT    NOT NULL,
     price        NUMERIC(10, 2),
     url          TEXT,
-    rating       NUMERIC(3, 1),
-    review_count INTEGER DEFAULT 0,
-    last_updated TIMESTAMPTZ DEFAULT NOW(),
+    rating           NUMERIC(3, 1),
+    review_count     INTEGER DEFAULT 0,
+    is_member_price  BOOLEAN DEFAULT FALSE,
+    last_updated     TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (wine_id, retailer)
 );
 

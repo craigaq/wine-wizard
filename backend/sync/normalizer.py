@@ -4,6 +4,8 @@ MerchantOffer schema. Add a new _normalize_<merchant> function for each
 new retailer; the dispatch table at the bottom routes automatically.
 """
 
+import json
+import pathlib
 import re
 import logging
 from typing import Optional
@@ -52,111 +54,21 @@ _VARIETAL_CANONICAL: dict[str, str] = {
 }
 
 
-# ── Australian producer → state mapping ──────────────────────────────────────
-# Keyed by lowercase prefix/brand name, longest entries first so "jacob's creek"
-# matches before a hypothetical "jacob". Expand as new producers appear in data.
-_PRODUCER_STATE: list[tuple[str, str]] = sorted([
-    # South Australia
-    ("penfolds",           "SA"),
-    ("jacob's creek",      "SA"),
-    ("jacobs creek",       "SA"),
-    ("wolf blass",         "SA"),
-    ("hardys",             "SA"),
-    ("hardy's",            "SA"),
-    ("yalumba",            "SA"),
-    ("oxford landing",     "SA"),   # Yalumba brand
-    ("grant burge",        "SA"),
-    ("st hallett",         "SA"),
-    ("peter lehmann",      "SA"),
-    ("saltram",            "SA"),
-    ("seppelt",            "SA"),
-    ("d'arenberg",         "SA"),
-    ("wirra wirra",        "SA"),
-    ("bleasdale",          "SA"),
-    ("pepperjack",         "SA"),
-    ("chateau tanunda",    "SA"),
-    ("angove",             "SA"),
-    ("ruffled feather",    "SA"),   # Angove brand
-    ("annies lane",        "SA"),   # Annie's Lane — TWE Clare Valley
-    ("annie's lane",       "SA"),
-    ("kilikanoon",         "SA"),
-    ("two hands",          "SA"),
-    ("torbreck",           "SA"),
-    ("mitolo",             "SA"),
-    ("gemtree",            "SA"),
-    ("primo estate",       "SA"),
-    ("jim barry",          "SA"),
-    ("tim adams",          "SA"),
-    ("shut the gate",      "SA"),
-    ("coriole",            "SA"),
-    ("henschke",           "SA"),
-    ("elderton",           "SA"),
-    ("chateau reynella",   "SA"),
-    # New South Wales
-    ("de bortoli",         "NSW"),
-    ("mcwilliams",         "NSW"),
-    ("mcguigan",           "NSW"),
-    ("casella",            "NSW"),
-    ("yellow tail",        "NSW"),  # Casella brand
-    ("yellowtail",         "NSW"),
-    ("lindemans",          "NSW"),
-    ("lindeman's",         "NSW"),
-    ("tyrrells",           "NSW"),
-    ("tyrrell's",          "NSW"),
-    ("brokenwood",         "NSW"),
-    ("hungerford hill",    "NSW"),
-    ("tulloch",            "NSW"),
-    ("drayton's",          "NSW"),
-    ("draytons",           "NSW"),
-    ("rosemount",          "NSW"),
-    ("wyndham",            "NSW"),
-    ("zilzie",             "NSW"),  # Murray Darling, straddles NSW/VIC — assign NSW
-    ("mcpherson",          "NSW"),
-    ("family of twelve",   "NSW"),
-    # Victoria
-    ("brown brothers",     "VIC"),
-    ("tahbilk",            "VIC"),
-    ("mitchelton",         "VIC"),
-    ("yellowglen",         "VIC"),
-    ("campbells",          "VIC"),
-    ("all saints",         "VIC"),
-    ("yering station",     "VIC"),
-    ("punt road",          "VIC"),
-    ("balgownie",          "VIC"),
-    ("giaconda",           "VIC"),
-    ("mount langi ghiran", "VIC"),
-    ("stonier",            "VIC"),
-    ("port phillip estate","VIC"),
-    ("kooyong",            "VIC"),
-    ("paringa estate",     "VIC"),
-    # Western Australia
-    ("cape mentelle",      "WA"),
-    ("leeuwin estate",     "WA"),
-    ("leeuwin",            "WA"),
-    ("houghton",           "WA"),
-    ("sandalford",         "WA"),
-    ("howard park",        "WA"),
-    ("vasse felix",        "WA"),
-    ("devil's lair",       "WA"),
-    ("devils lair",        "WA"),
-    ("evans & tate",       "WA"),
-    ("evans and tate",     "WA"),
-    ("cullen",             "WA"),
-    ("voyager estate",     "WA"),
-    ("moss wood",          "WA"),
-    ("xanadu",             "WA"),
-    ("plantagenet",        "WA"),
-    # Tasmania
-    ("josef chromy",       "TAS"),
-    ("bay of fires",       "TAS"),
-    ("pipers brook",       "TAS"),
-    ("kreglinger",         "TAS"),
-    ("moorilla",           "TAS"),
-    ("pressing matters",   "TAS"),
-    # Queensland
-    ("sirromet",           "QLD"),
-    ("ballandean estate",  "QLD"),
-], key=lambda x: -len(x[0]))
+# ── Australian producer → state mapping (loaded from producer_state.json) ────
+# Longest entries sort first so "jacob's creek" matches before "jacob".
+# Add new producers to the JSON file — no code change needed.
+_PRODUCER_STATE: list[tuple[str, str]] = sorted(
+    [tuple(pair) for pair in json.loads(
+        (pathlib.Path(__file__).parent / "producer_state.json").read_text(encoding="utf-8")
+    )],
+    key=lambda x: -len(x[0]),
+)
+
+# Field names that indicate a member/loyalty-only price in scraped data.
+_MEMBER_PRICE_KEYS = frozenset({
+    "member_price", "loyalty_price", "rewards_price",
+    "club_price", "everyday_price", "everyday_rewards_price",
+})
 
 
 def _infer_state_from_producer(name: str) -> str | None:
@@ -307,6 +219,16 @@ def _normalize_liquorland(item: dict, retailer: str) -> Optional[tuple[WineRecor
     rating        = _coerce_price(rating_raw)
     review_count  = int(item.get('review_count') or _review_stats.get('total') or 0)
 
+    # Member price detection: explicit flag fields take priority; fallback is
+    # checking whether price_now < a separately listed standard price, which
+    # indicates the scraped price is the member/loyalty rate.
+    is_member_price = any(k in item for k in _MEMBER_PRICE_KEYS)
+    if not is_member_price and item.get('price_now'):
+        _std = _coerce_price(item.get('price') or item.get('was_price') or item.get('rrp'))
+        _now = _coerce_price(item['price_now'])
+        if _std and _now and _now < _std - 0.01:
+            is_member_price = True
+
     if not _matches_catalog(varietal, name):
         log.debug("liquorland item skipped — not in known catalog: %r", name)
         return None
@@ -325,7 +247,8 @@ def _normalize_liquorland(item: dict, retailer: str) -> Optional[tuple[WineRecor
                        varietal=varietal, country=country, state=state)
     offer = MerchantOffer(wine_name=clean_name, vintage=vintage,
                           retailer=retailer, price=price, url=url,
-                          rating=rating, review_count=review_count)
+                          rating=rating, review_count=review_count,
+                          is_member_price=is_member_price)
     return wine, offer
 
 

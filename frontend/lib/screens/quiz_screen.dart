@@ -952,6 +952,7 @@ class _QuizScreenState extends State<QuizScreen> {
               budgetMin: _selectedBracket.min,
               budgetMax: _selectedBracket.max,
               currencyCode: _currencyCode,
+              prefDry: _prefDry,
             );
           }),
         ],
@@ -979,6 +980,7 @@ class _WineResultCard extends StatefulWidget {
   final double budgetMin;
   final double budgetMax;
   final String currencyCode;
+  final bool prefDry;
 
   const _WineResultCard({
     required this.rank,
@@ -988,6 +990,7 @@ class _WineResultCard extends StatefulWidget {
     required this.budgetMin,
     required this.budgetMax,
     this.currencyCode = 'AUD',
+    this.prefDry = false,
   });
 
   @override
@@ -1173,6 +1176,7 @@ class _WineResultCardState extends State<_WineResultCard> {
                           builder: (_) => WinePicksScreen(
                             varietal: widget.wine.varietal,
                             budgetMax: widget.budgetMax,
+                            prefDry: widget.prefDry,
                           ),
                         ),
                       ),

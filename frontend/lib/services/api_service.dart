@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/wine_recommendation.dart';
@@ -6,12 +7,11 @@ import '../models/merchant.dart';
 import '../models/wine_picks.dart';
 
 class ApiService {
-  // Android emulator routes 10.0.2.2 → host machine's localhost.
-  // For a physical device or iOS simulator, replace with your machine's LAN IP
-  // e.g. 'http://192.168.1.X:8000'
-  // 10.0.2.2 routes to the host machine's localhost from the Android emulator.
-  // For a physical device, replace with your LAN IP (e.g. 'http://192.168.1.X:8002').
-  static const String _baseUrl = 'http://10.0.2.2:8002';
+  // Debug → Android emulator loopback. Release → production FastAPI host.
+  // Set CELLARSAGE_API_URL in your CI/CD environment to override the prod URL.
+  static final String _baseUrl = kReleaseMode
+      ? 'https://api.cellarsage.app'
+      : 'http://10.0.2.2:8002';
 
   Future<String> fetchHello() async {
     final response = await http.get(Uri.parse('$_baseUrl/hello'));
@@ -120,10 +120,12 @@ class ApiService {
     required String varietal,
     String? userState,
     double budgetMax = 9999.0,
+    bool prefDry = false,
   }) async {
     final params = <String, String>{
       'varietal': varietal,
       'budget_max': '$budgetMax',
+      'pref_dry': '$prefDry',
     };
     if (userState != null) params['user_state'] = userState;
     final uri = Uri.parse('$_baseUrl/wine-picks').replace(queryParameters: params);

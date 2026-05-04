@@ -186,6 +186,7 @@ class WinePick(BaseModel):
     url: str
     retailer: str = ""
     price_is_stale: bool = False
+    is_member_price: bool = False
     rating: Optional[float] = None
     review_count: int = 0
 
@@ -354,14 +355,15 @@ def wine_picks(
     varietal: str = Query(..., description="Canonical varietal name (e.g. 'Sauvignon Blanc')"),
     user_state: Optional[str] = Query(None, description="User's Australian state (e.g. 'SA') for Tier 1 filtering"),
     budget_max: float = Query(9999.0, ge=0, description="Maximum price in AUD"),
+    pref_dry: bool = Query(False, description="Exclude sweet styles from Tier 4 deal pool"),
 ):
     """
-    Return up to 3 tiered Liquorland picks for a given varietal, filtered by budget.
-    Tier 1 = best-value Australian (state-filtered), Tier 2 = next best-value Australian,
-    Tier 3 = best-value non-Australian.
+    Return up to 4 tiered picks for a given varietal, filtered by budget.
+    Tier 1 = Local Hero, Tier 2 = National Contender, Tier 3 = Internationalist, Tier 4 = The Deal.
     """
     from db_catalog import get_wine_picks
-    picks = get_wine_picks(varietal=varietal, user_state=user_state, budget_max=budget_max)
+    picks = get_wine_picks(varietal=varietal, user_state=user_state,
+                           budget_max=budget_max, pref_dry=pref_dry)
     return WinePicksResponse(varietal=varietal, picks=[WinePick(**p) for p in picks])
 
 

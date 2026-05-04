@@ -22,11 +22,13 @@ const _tierIcons = {
 class WinePicksScreen extends StatefulWidget {
   final String varietal;
   final double budgetMax;
+  final bool prefDry;
 
   const WinePicksScreen({
     super.key,
     required this.varietal,
     this.budgetMax = 9999.0,
+    this.prefDry = false,
   });
 
   @override
@@ -53,6 +55,7 @@ class _WinePicksScreenState extends State<WinePicksScreen> {
       final response = await ApiService().winePicks(
         varietal: widget.varietal,
         budgetMax: widget.budgetMax,
+        prefDry: widget.prefDry,
       );
       if (mounted) setState(() { _response = response; _loading = false; });
     } catch (e) {
@@ -237,6 +240,28 @@ class _PickCard extends StatelessWidget {
                       'A\$${pick.price.toStringAsFixed(2)}',
                       style: WwText.priceHero(),
                     ),
+                    if (pick.isMemberPrice) ...[
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: 'Members price — sign up free at ${_retailerLabel(pick.retailer)}',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: WwColors.violet.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: WwColors.violet.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            'MEMBERS',
+                            style: WwText.badgeLabel().copyWith(
+                              fontSize: 8,
+                              color: WwColors.violet,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     if (pick.priceIsStale) ...[
                       const SizedBox(width: 6),
                       Tooltip(

@@ -29,6 +29,7 @@ class MerchantOffer:
     url: Optional[str]
     rating: Optional[float] = None
     review_count: int = 0
+    is_member_price: bool = False
     last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 

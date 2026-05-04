@@ -71,17 +71,18 @@ def _upsert_offer(cur, wine_id: int, offer: MerchantOffer) -> None:
     """
     cur.execute(
         """
-        INSERT INTO merchant_offers (wine_id, retailer, price, url, rating, review_count, last_updated)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO merchant_offers (wine_id, retailer, price, url, rating, review_count, is_member_price, last_updated)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (wine_id, retailer) DO UPDATE
-            SET price        = COALESCE(EXCLUDED.price,        merchant_offers.price),
-                url          = COALESCE(EXCLUDED.url,          merchant_offers.url),
-                rating       = COALESCE(EXCLUDED.rating,       merchant_offers.rating),
-                review_count = GREATEST(EXCLUDED.review_count, merchant_offers.review_count),
-                last_updated = EXCLUDED.last_updated
+            SET price           = COALESCE(EXCLUDED.price,           merchant_offers.price),
+                url             = COALESCE(EXCLUDED.url,             merchant_offers.url),
+                rating          = COALESCE(EXCLUDED.rating,          merchant_offers.rating),
+                review_count    = GREATEST(EXCLUDED.review_count,    merchant_offers.review_count),
+                is_member_price = EXCLUDED.is_member_price,
+                last_updated    = EXCLUDED.last_updated
         """,
         (wine_id, offer.retailer, offer.price, offer.url,
-         offer.rating, offer.review_count, offer.last_updated),
+         offer.rating, offer.review_count, offer.is_member_price, offer.last_updated),
     )
 
 

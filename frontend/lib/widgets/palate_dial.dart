@@ -23,6 +23,20 @@ class PalateDial extends StatelessWidget {
       child: RadarChart(
         RadarChartData(
           dataSets: [
+            // Invisible anchor — forces the radar scale to always top out at 5,
+            // matching the quiz slider range regardless of actual user values.
+            RadarDataSet(
+              dataEntries: const [
+                RadarEntry(value: 5),
+                RadarEntry(value: 5),
+                RadarEntry(value: 5),
+                RadarEntry(value: 5),
+              ],
+              fillColor: Colors.transparent,
+              borderColor: Colors.transparent,
+              borderWidth: 0,
+              entryRadius: 0,
+            ),
             RadarDataSet(
               dataEntries: [
                 RadarEntry(value: crispness.toDouble()),
