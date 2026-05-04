@@ -13,6 +13,14 @@ Future<void> _openUrl(String url) async {
   }
 }
 
+Future<void> _openDirections(String address) async {
+  final encoded = Uri.encodeComponent(address);
+  final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encoded');
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    debugPrint('Could not open directions for $address');
+  }
+}
+
 // Tier colour palette
 const _tierColors = {
   1: WwColors.tierLocal,
@@ -473,6 +481,27 @@ class _WineComparisonCard extends StatelessWidget {
                       ),
                     ),
                   if (best.websiteUrl.isNotEmpty) const SizedBox(height: 8),
+                  if (!best.isOnlineOnly && best.address.isNotEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _openDirections(best.address),
+                        icon: Icon(Icons.directions, size: 16, color: color),
+                        label: Text(
+                          'Get Directions',
+                          style: WwText.bodyMedium(color: color),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: color.withValues(alpha: 0.6)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!best.isOnlineOnly && best.address.isNotEmpty)
+                    const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
@@ -707,23 +736,50 @@ class _MerchantRow extends StatelessWidget {
                   merchant.address,
                   style: WwText.bodySmall(),
                 ),
-                if (merchant.websiteUrl.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () => _openUrl(merchant.websiteUrl),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.open_in_new,
-                            size: 12, color: WwColors.violet),
-                        const SizedBox(width: 3),
-                        Text(
-                          'Shop online',
-                          style: WwText.bodySmall(color: WwColors.violet)
-                              .copyWith(
-                                  decoration: TextDecoration.underline),
+                if (merchant.websiteUrl.isNotEmpty ||
+                    (!merchant.isOnlineOnly && merchant.address.isNotEmpty)) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      if (merchant.websiteUrl.isNotEmpty)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _openUrl(merchant.websiteUrl),
+                            icon: const Icon(Icons.open_in_new, size: 13),
+                            label: const Text('Online'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              side: BorderSide(color: WwColors.violet.withValues(alpha: 0.5)),
+                              foregroundColor: WwColors.violet,
+                              textStyle: const TextStyle(fontSize: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      if (merchant.websiteUrl.isNotEmpty &&
+                          !merchant.isOnlineOnly &&
+                          merchant.address.isNotEmpty)
+                        const SizedBox(width: 8),
+                      if (!merchant.isOnlineOnly && merchant.address.isNotEmpty)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _openDirections(merchant.address),
+                            icon: Icon(Icons.directions, size: 13, color: color),
+                            label: const Text('Directions'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              side: BorderSide(color: color.withValues(alpha: 0.5)),
+                              foregroundColor: color,
+                              textStyle: const TextStyle(fontSize: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ],
